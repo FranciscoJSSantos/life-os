@@ -48,3 +48,7 @@ def test_create_and_toggle_task():
         reverted = untoggle_res.json()
         assert reverted["completed"] is False
         assert reverted["status"] == "PENDING"
+
+        # 6. Limpar tarefa de teste
+        del_res = client.delete(f"/api/v1/tasks/{task_id}")
+        assert del_res.status_code == 204

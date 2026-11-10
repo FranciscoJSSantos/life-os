@@ -93,3 +93,4 @@ class HabitTodayItem(BaseModel):
     completed: bool = False
     streak: int = 0
     logs_count: int = 0
+    notes: str | None = None

@@ -56,3 +56,12 @@ def test_create_and_toggle_habit():
         reverted = untoggle_res.json()
         assert reverted["completed"] is False
         assert reverted["streak"] == 0
+
+        # 6. Limpar hábito de teste do banco
+        from app.database.session import SessionLocal
+        from app.models.habit import Habit
+        with SessionLocal() as db:
+            h = db.get(Habit, habit_id)
+            if h:
+                db.delete(h)
+                db.commit()

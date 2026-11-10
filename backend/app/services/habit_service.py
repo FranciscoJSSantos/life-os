@@ -182,6 +182,8 @@ class HabitService:
             streak = HabitService.calculate_streak(db, habit, ref_date)
 
             category_name = habit.category.name if habit.category else "Geral"
+            notes_list = [log.notes for log in logs if log.notes]
+            notes_str = " | ".join(notes_list) if notes_list else None
 
             today_items.append(
                 HabitTodayItem(
@@ -198,7 +200,8 @@ class HabitService:
                     unit=habit.unit,
                     completed=is_completed,
                     streak=streak,
-                    logs_count=len(logs)
+                    logs_count=len(logs),
+                    notes=notes_str
                 )
             )
 
@@ -209,7 +212,8 @@ class HabitService:
         db: Session, 
         habit_id: str, 
         target_date: date, 
-        value: float | None = None
+        value: float | None = None,
+        notes: str | None = None
     ) -> HabitTodayItem:
         habit = db.get(Habit, habit_id)
         if not habit:
@@ -228,10 +232,15 @@ class HabitService:
         current_val = sum(log.value for log in existing_logs if log.status == LogStatus.COMPLETED)
         is_already_completed = current_val >= habit.target_value
 
-        if is_already_completed:
+        if is_already_completed and notes is None:
             # Desmarcar: remove os logs do dia
             for log in existing_logs:
                 db.delete(log)
+            db.commit()
+        elif is_already_completed and notes is not None:
+            # Apenas atualizar nota
+            for log in existing_logs:
+                log.notes = notes
             db.commit()
         else:
             # Marcar como concluído
@@ -243,7 +252,8 @@ class HabitService:
                 habit_id=habit_id,
                 scheduled_date=target_date,
                 value=add_val,
-                status=LogStatus.COMPLETED
+                status=LogStatus.COMPLETED,
+                notes=notes
             )
             db.add(new_log)
             db.commit()

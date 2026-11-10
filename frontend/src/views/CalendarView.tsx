@@ -192,16 +192,23 @@ export const CalendarView: React.FC = () => {
                 {dayHabits.map((h) => (
                   <div
                     key={h.id}
-                    className={`flex items-center justify-between p-2 rounded-lg text-xs border ${
+                    className={`p-2 rounded-lg text-xs border ${
                       h.completed
                         ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
                         : 'bg-[#0F141C] border-white/5 text-slate-400'
                     }`}
                   >
-                    <span className="font-medium truncate">{h.name}</span>
-                    <span className="font-mono text-[11px] shrink-0">
-                      {h.completed ? '✓ Feito' : 'Pendente'}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium truncate">{h.name}</span>
+                      <span className="font-mono text-[11px] shrink-0">
+                        {h.completed ? '✓ Feito' : 'Pendente'}
+                      </span>
+                    </div>
+                    {h.notes && (
+                      <p className="mt-1 text-[11px] text-cyan-300 italic border-t border-white/5 pt-1">
+                        💬 Sintomas: {h.notes}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
