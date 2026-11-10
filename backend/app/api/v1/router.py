@@ -6,7 +6,7 @@ from app.database.session import get_db
 from app.models.category import Category
 from app.models.habit import Habit
 from app.models.task import Task
-from app.api.v1.endpoints import categories, habits
+from app.api.v1.endpoints import categories, habits, tasks
 
 api_router = APIRouter()
 
@@ -32,3 +32,4 @@ def health_check(db: Session = Depends(get_db)):
 
 api_router.include_router(categories.router)
 api_router.include_router(habits.router)
+api_router.include_router(tasks.router)

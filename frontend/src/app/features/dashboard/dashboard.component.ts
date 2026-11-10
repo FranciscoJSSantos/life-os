@@ -1,16 +1,7 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
-import { ApiService, HealthResponse, HabitTodayItem } from '../../core/services/api.service';
-
-interface TaskItem {
-  id: string;
-  title: string;
-  category: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  completed: boolean;
-  dueTime?: string;
-}
+import { ApiService, HealthResponse, HabitTodayItem, TaskTodayItem } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -29,35 +20,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   protected readonly backendError = signal<boolean>(false);
   protected readonly isLoading = signal<boolean>(true);
 
-  // Hábitos reais vindos do backend SQLite
+  // Hábitos reais vindos do SQLite
   protected readonly habits = signal<HabitTodayItem[]>([]);
 
-  // Tarefas locais (Sprint 3 integrará persistência de tarefas)
-  protected readonly tasks = signal<TaskItem[]>([
-    {
-      id: 't1',
-      title: 'Estruturação do Backend e Frontend',
-      category: 'Projeto',
-      priority: 'HIGH',
-      completed: true,
-      dueTime: '11:00'
-    },
-    {
-      id: 't2',
-      title: 'Validar persistência de hábitos no SQLite',
-      category: 'Design',
-      priority: 'MEDIUM',
-      completed: true,
-      dueTime: '15:30'
-    },
-    {
-      id: 't3',
-      title: 'Planejar módulo de rotinas e calendário',
-      category: 'Planejamento',
-      priority: 'LOW',
-      completed: false
-    }
-  ]);
+  // Tarefas reais vindas do SQLite
+  protected readonly tasks = signal<TaskTodayItem[]>([]);
 
   ngOnInit(): void {
     const now = new Date();
@@ -71,10 +38,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.loadData();
 
-    // Escutar eventos de criação/atualização de hábitos
+    // Escutar eventos de criação/atualização
     this.sub.add(
-      this.apiService.refreshHabits$.subscribe(() => {
+      this.apiService.refreshData$.subscribe(() => {
         this.loadHabits();
+        this.loadTasks();
       })
     );
   }
@@ -87,6 +55,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.checkBackend();
     this.loadHabits();
+    this.loadTasks();
   }
 
   loadHabits(): void {
@@ -98,6 +67,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  loadTasks(): void {
+    this.apiService.getTodayTasks().subscribe({
+      next: (items) => {
+        this.tasks.set(items);
+        this.calculateCompletion();
+      },
+      error: (err) => {
+        console.error('Erro ao carregar tarefas:', err);
       }
     });
   }
@@ -130,17 +111,31 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Erro ao alternar hábito:', err);
-        // Recarregar estado real do banco em caso de erro
         this.loadHabits();
       }
     });
   }
 
   toggleTask(taskId: string): void {
+    // Atualização otimista
     this.tasks.update(items =>
       items.map(t => (t.id === taskId ? { ...t, completed: !t.completed } : t))
     );
     this.calculateCompletion();
+
+    // Persistir no backend SQLite
+    this.apiService.toggleTask(taskId).subscribe({
+      next: (updatedItem) => {
+        this.tasks.update(items =>
+          items.map(t => (t.id === taskId ? updatedItem : t))
+        );
+        this.calculateCompletion();
+      },
+      error: (err) => {
+        console.error('Erro ao alternar tarefa:', err);
+        this.loadTasks();
+      }
+    });
   }
 
   private calculateCompletion(): void {

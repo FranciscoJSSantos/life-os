@@ -125,6 +125,14 @@
       </div>
 
       <div class="items-list">
+        @if (tasks().length === 0) {
+          <div class="card empty-card">
+            <span class="empty-icon">📝</span>
+            <p class="empty-text">Nenhuma tarefa pendente para hoje.</p>
+            <p class="empty-sub">Aproveite seu dia ou crie uma tarefa no botão <strong>+</strong>!</p>
+          </div>
+        }
+
         @for (task of tasks(); track task.id) {
           <div 
             class="card task-card" 
@@ -149,8 +157,8 @@
                 <span class="task-title">{{ task.title }}</span>
                 <div class="task-meta">
                   <span class="category-pill">{{ task.category }}</span>
-                  @if (task.dueTime) {
-                    <span class="time-pill">⏰ {{ task.dueTime }}</span>
+                  @if (task.due_time) {
+                    <span class="time-pill">⏰ {{ task.due_time }}</span>
                   }
                 </div>
               </div>

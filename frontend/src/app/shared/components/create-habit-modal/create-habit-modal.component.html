@@ -2,145 +2,234 @@
   <div class="modal-backdrop" (click)="close.emit()">
     <div class="modal-card" (click)="$event.stopPropagation()">
       <header class="modal-header">
-        <h2>Criar Novo Hábito</h2>
+        <div class="header-tabs">
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="activeTab === 'HABIT'"
+            (click)="activeTab = 'HABIT'"
+          >
+            Novo Hábito
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="activeTab === 'TASK'"
+            (click)="activeTab = 'TASK'"
+          >
+            Nova Tarefa
+          </button>
+        </div>
         <button type="button" class="close-btn" (click)="close.emit()">&times;</button>
       </header>
 
       <div class="modal-body">
-        <!-- Nome -->
-        <div class="form-group">
-          <label for="habitName">Nome do Hábito *</label>
-          <input 
-            id="habitName" 
-            type="text" 
-            [(ngModel)]="name" 
-            placeholder="Ex: Beber 2.5L de Água, Ler 20 Páginas..." 
-            class="form-control"
-            autofocus
-          />
-        </div>
+        @if (activeTab === 'HABIT') {
+          <!-- HABIT FORM -->
+          <div class="form-group">
+            <label for="habitName">Nome do Hábito *</label>
+            <input 
+              id="habitName" 
+              type="text" 
+              [(ngModel)]="name" 
+              placeholder="Ex: Beber 2.5L de Água, Ler 20 Páginas..." 
+              class="form-control"
+              autofocus
+            />
+          </div>
 
-        <!-- Categoria & Cor -->
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label for="habitCategory">Categoria</label>
-            <select id="habitCategory" [(ngModel)]="selectedCategoryId" class="form-control">
-              @for (cat of categories(); track cat.id) {
-                <option [value]="cat.id">{{ cat.name }}</option>
-              }
-            </select>
+          <!-- Categoria & Cor -->
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="habitCategory">Categoria</label>
+              <select id="habitCategory" [(ngModel)]="selectedCategoryId" class="form-control">
+                @for (cat of categories(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Cor</label>
+              <div class="color-picker-row">
+                @for (color of colors; track color) {
+                  <button 
+                    type="button" 
+                    class="color-dot" 
+                    [style.background-color]="color"
+                    [class.active]="selectedColor === color"
+                    (click)="selectedColor = color"
+                  ></button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Tipo do Hábito -->
+          <div class="form-group">
+            <label>Tipo de Registro</label>
+            <div class="type-selector">
+              <button 
+                type="button" 
+                class="type-pill" 
+                [class.active]="habitType === 'BOOLEAN'"
+                (click)="habitType = 'BOOLEAN'"
+              >
+                Sim / Não
+              </button>
+              <button 
+                type="button" 
+                class="type-pill" 
+                [class.active]="habitType === 'NUMERIC'"
+                (click)="habitType = 'NUMERIC'"
+              >
+                Quantitativo
+              </button>
+              <button 
+                type="button" 
+                class="type-pill" 
+                [class.active]="habitType === 'DURATION'"
+                (click)="habitType = 'DURATION'"
+              >
+                Tempo (Minutos)
+              </button>
+            </div>
+          </div>
+
+          <!-- Meta e Unidade (se não for booleano) -->
+          @if (habitType !== 'BOOLEAN') {
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Meta Diária</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="targetValue" 
+                  class="form-control"
+                  min="1"
+                />
+              </div>
+              <div class="form-group flex-1">
+                <label>Unidade</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="unit" 
+                  [placeholder]="habitType === 'DURATION' ? 'min' : 'ml, páginas, km...'" 
+                  class="form-control"
+                />
+              </div>
+            </div>
+          }
+
+          <!-- Frequência -->
+          <div class="form-group">
+            <label>Frequência</label>
+            <div class="freq-options">
+              <label class="radio-label">
+                <input 
+                  type="radio" 
+                  name="freqType" 
+                  value="DAILY" 
+                  [(ngModel)]="frequencyType"
+                />
+                <span>Todos os dias</span>
+              </label>
+              <label class="radio-label">
+                <input 
+                  type="radio" 
+                  name="freqType" 
+                  value="WEEKLY_DAYS" 
+                  [(ngModel)]="frequencyType"
+                />
+                <span>Dias específicos</span>
+              </label>
+            </div>
+
+            @if (frequencyType === 'WEEKLY_DAYS') {
+              <div class="weekdays-selector">
+                @for (day of selectedDays; track day.day) {
+                  <button 
+                    type="button" 
+                    class="day-btn" 
+                    [class.active]="day.selected"
+                    (click)="toggleDay(day.day)"
+                  >
+                    {{ day.label }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- TASK FORM -->
+          <div class="form-group">
+            <label for="taskTitle">Título da Tarefa *</label>
+            <input 
+              id="taskTitle" 
+              type="text" 
+              [(ngModel)]="taskTitle" 
+              placeholder="Ex: Enviar relatório, Agendar consulta..." 
+              class="form-control"
+              autofocus
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="taskCategory">Categoria</label>
+              <select id="taskCategory" [(ngModel)]="taskCategoryId" class="form-control">
+                @for (cat of categories(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group flex-1">
+              <label for="taskPriority">Prioridade</label>
+              <select id="taskPriority" [(ngModel)]="taskPriority" class="form-control">
+                <option value="LOW">Baixa</option>
+                <option value="MEDIUM">Média</option>
+                <option value="HIGH">Alta</option>
+                <option value="URGENT">Urgente</option>
+              </select>
+            </div>
           </div>
 
           <div class="form-group">
-            <label>Cor</label>
-            <div class="color-picker-row">
-              @for (color of colors; track color) {
-                <button 
-                  type="button" 
-                  class="color-dot" 
-                  [style.background-color]="color"
-                  [class.active]="selectedColor === color"
-                  (click)="selectedColor = color"
-                ></button>
-              }
-            </div>
+            <label for="taskDueDate">Data de Vencimento</label>
+            <input 
+              id="taskDueDate" 
+              type="date" 
+              [(ngModel)]="taskDueDate" 
+              class="form-control"
+            />
           </div>
-        </div>
 
-        <!-- Tipo do Hábito -->
-        <div class="form-group">
-          <label>Tipo de Registro</label>
-          <div class="type-selector">
-            <button 
-              type="button" 
-              class="type-pill" 
-              [class.active]="habitType === 'BOOLEAN'"
-              (click)="habitType = 'BOOLEAN'"
-            >
-              Sim / Não
-            </button>
-            <button 
-              type="button" 
-              class="type-pill" 
-              [class.active]="habitType === 'NUMERIC'"
-              (click)="habitType = 'NUMERIC'"
-            >
-              Quantitativo
-            </button>
-            <button 
-              type="button" 
-              class="type-pill" 
-              [class.active]="habitType === 'DURATION'"
-              (click)="habitType = 'DURATION'"
-            >
-              Tempo (Minutos)
-            </button>
-          </div>
-        </div>
-
-        <!-- Meta e Unidade (se não for booleano) -->
-        @if (habitType !== 'BOOLEAN') {
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label>Meta Diária</label>
-              <input 
-                type="number" 
-                [(ngModel)]="targetValue" 
-                class="form-control"
-                min="1"
-              />
-            </div>
-            <div class="form-group flex-1">
-              <label>Unidade</label>
+          <!-- Subtarefas -->
+          <div class="form-group">
+            <label>Subtarefas</label>
+            <div class="subtask-input-row">
               <input 
                 type="text" 
-                [(ngModel)]="unit" 
-                [placeholder]="habitType === 'DURATION' ? 'min' : 'ml, páginas, km...'" 
-                class="form-control"
+                [(ngModel)]="newSubtaskTitle" 
+                (keydown.enter)="addSubtask()" 
+                placeholder="Adicionar subtarefa e pressionar Enter..." 
+                class="form-control flex-1"
               />
+              <button type="button" class="btn-add-sub" (click)="addSubtask()">Adicionar</button>
             </div>
+
+            @if (taskSubtasks.length > 0) {
+              <div class="subtasks-list">
+                @for (sub of taskSubtasks; track $index) {
+                  <div class="subtask-item">
+                    <span>{{ sub.title }}</span>
+                    <button type="button" class="btn-remove-sub" (click)="removeSubtask($index)">&times;</button>
+                  </div>
+                }
+              </div>
+            }
           </div>
         }
-
-        <!-- Frequência -->
-        <div class="form-group">
-          <label>Frequência</label>
-          <div class="freq-options">
-            <label class="radio-label">
-              <input 
-                type="radio" 
-                name="freqType" 
-                value="DAILY" 
-                [(ngModel)]="frequencyType"
-              />
-              <span>Todos os dias</span>
-            </label>
-            <label class="radio-label">
-              <input 
-                type="radio" 
-                name="freqType" 
-                value="WEEKLY_DAYS" 
-                [(ngModel)]="frequencyType"
-              />
-              <span>Dias específicos</span>
-            </label>
-          </div>
-
-          @if (frequencyType === 'WEEKLY_DAYS') {
-            <div class="weekdays-selector">
-              @for (day of selectedDays; track day.day) {
-                <button 
-                  type="button" 
-                  class="day-btn" 
-                  [class.active]="day.selected"
-                  (click)="toggleDay(day.day)"
-                >
-                  {{ day.label }}
-                </button>
-              }
-            </div>
-          }
-        </div>
       </div>
 
       <footer class="modal-footer">
@@ -148,10 +237,10 @@
         <button 
           type="button" 
           class="btn-save" 
-          [disabled]="!name.trim() || isSaving()"
+          [disabled]="(activeTab === 'HABIT' ? !name.trim() : !taskTitle.trim()) || isSaving()"
           (click)="save()"
         >
-          @if (isSaving()) { Salvando... } @else { Salvar Hábito }
+          @if (isSaving()) { Salvando... } @else { Salvar {{ activeTab === 'HABIT' ? 'Hábito' : 'Tarefa' }} }
         </button>
       </footer>
     </div>

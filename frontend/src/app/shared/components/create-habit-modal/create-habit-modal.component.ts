@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, Category, CreateHabitDto } from '../../../core/services/api.service';
+import { ApiService, Category, CreateHabitDto, CreateTaskDto } from '../../../core/services/api.service';
 
 @Component({
   selector: 'app-create-habit-modal',
@@ -19,8 +19,9 @@ export class CreateHabitModalComponent implements OnInit {
 
   protected readonly categories = signal<Category[]>([]);
   protected readonly isSaving = signal<boolean>(false);
+  protected activeTab: 'HABIT' | 'TASK' = 'HABIT';
 
-  // Form Model
+  // Habit Form Model
   protected name = '';
   protected description = '';
   protected selectedCategoryId = '';
@@ -29,6 +30,15 @@ export class CreateHabitModalComponent implements OnInit {
   protected unit = '';
   protected selectedColor = '#10B981';
   protected frequencyType: 'DAILY' | 'WEEKLY_DAYS' = 'DAILY';
+
+  // Task Form Model
+  protected taskTitle = '';
+  protected taskDescription = '';
+  protected taskCategoryId = '';
+  protected taskPriority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' = 'MEDIUM';
+  protected taskDueDate = new Date().toISOString().split('T')[0];
+  protected taskSubtasks: { title: string }[] = [];
+  protected newSubtaskTitle = '';
 
   // Weekday selector (0=Segunda, 6=Domingo)
   protected selectedDays = [
@@ -52,6 +62,7 @@ export class CreateHabitModalComponent implements OnInit {
         this.categories.set(cats);
         if (cats.length > 0) {
           this.selectedCategoryId = cats[0].id;
+          this.taskCategoryId = cats[0].id;
         }
       }
     });
@@ -61,7 +72,26 @@ export class CreateHabitModalComponent implements OnInit {
     this.selectedDays[dayIndex].selected = !this.selectedDays[dayIndex].selected;
   }
 
+  addSubtask(): void {
+    if (this.newSubtaskTitle.trim()) {
+      this.taskSubtasks.push({ title: this.newSubtaskTitle.trim() });
+      this.newSubtaskTitle = '';
+    }
+  }
+
+  removeSubtask(index: number): void {
+    this.taskSubtasks.splice(index, 1);
+  }
+
   save(): void {
+    if (this.activeTab === 'HABIT') {
+      this.saveHabit();
+    } else {
+      this.saveTask();
+    }
+  }
+
+  private saveHabit(): void {
     if (!this.name.trim()) return;
 
     this.isSaving.set(true);
@@ -88,7 +118,7 @@ export class CreateHabitModalComponent implements OnInit {
     this.apiService.createHabit(payload).subscribe({
       next: () => {
         this.isSaving.set(false);
-        this.resetForm();
+        this.resetHabitForm();
         this.habitCreated.emit();
         this.close.emit();
       },
@@ -99,7 +129,35 @@ export class CreateHabitModalComponent implements OnInit {
     });
   }
 
-  private resetForm(): void {
+  private saveTask(): void {
+    if (!this.taskTitle.trim()) return;
+
+    this.isSaving.set(true);
+
+    const payload: CreateTaskDto = {
+      title: this.taskTitle.trim(),
+      description: this.taskDescription.trim() || undefined,
+      category_id: this.taskCategoryId || undefined,
+      priority: this.taskPriority,
+      due_date: this.taskDueDate || undefined,
+      subtasks: this.taskSubtasks.map(s => ({ title: s.title, completed: false }))
+    };
+
+    this.apiService.createTask(payload).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.resetTaskForm();
+        this.habitCreated.emit();
+        this.close.emit();
+      },
+      error: (err) => {
+        console.error('Erro ao salvar tarefa:', err);
+        this.isSaving.set(false);
+      }
+    });
+  }
+
+  private resetHabitForm(): void {
     this.name = '';
     this.description = '';
     this.habitType = 'BOOLEAN';
@@ -107,5 +165,13 @@ export class CreateHabitModalComponent implements OnInit {
     this.unit = '';
     this.selectedColor = '#10B981';
     this.frequencyType = 'DAILY';
+  }
+
+  private resetTaskForm(): void {
+    this.taskTitle = '';
+    this.taskDescription = '';
+    this.taskPriority = 'MEDIUM';
+    this.taskSubtasks = [];
+    this.newSubtaskTitle = '';
   }
 }
