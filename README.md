@@ -7,7 +7,7 @@
 
 ## 🛠️ Stack Tecnológica
 
-- **Frontend:** [Angular 19+](https://angular.dev/) (Standalone Components, Signals, PWA, SCSS, Lucide Icons)
+- **Frontend:** [React 19](https://react.dev/) + [Vite](https://vite.dev/) + [Tailwind CSS v4](https://tailwindcss.com/) + [Lucide React](https://lucide.dev/) (PWA, Dark Theme HabitNow)
 - **Backend:** [Python 3.12+ / FastAPI](https://fastapi.tiangolo.com/) (REST API modular por domínios)
 - **Banco de Dados:** [SQLite 3](https://www.sqlite.org/) + [SQLAlchemy 2.0](https://www.sqlalchemy.org/) + [Alembic](https://alembic.sqlalchemy.org/)
 - **Armazenamento:** Local-first em `data/lifeos.db`
@@ -18,7 +18,7 @@
 
 ```text
 life_os/
-├── frontend/             # Aplicação Angular (PWA)
+├── frontend/             # Aplicação React 19 + Vite + Tailwind CSS (PWA)
 ├── backend/              # API FastAPI & Regras de Negócio
 │   ├── app/
 │   │   ├── api/v1/       # Endpoints REST
@@ -54,9 +54,11 @@ uvicorn app.main:app --reload --port 8000
 - Documentação interativa Swagger: `http://localhost:8000/docs`
 - Healthcheck: `http://localhost:8000/api/v1/health`
 
-### 2. Frontend (Angular)
+### 2. Frontend (React + Vite)
 ```bash
 cd frontend
+npm run dev
+# ou
 npm start
 ```
 - Aplicação disponível em: `http://localhost:4200`
