@@ -10,7 +10,8 @@ import {
   Sun,
   Moon,
   Activity,
-  CheckCircle2,
+  Brain,
+  Droplets,
   X
 } from 'lucide-react';
 import { api, type HabitTodayItem, type TaskTodayItem } from '../api/client';
@@ -31,6 +32,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingNotesHabit, setEditingNotesHabit] = useState<HabitTodayItem | null>(null);
   const [notesInput, setNotesInput] = useState<string>('');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('TODOS');
 
   // Cálculo de progresso diário
   const totalItems = habits.length + tasks.length;
@@ -109,18 +111,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
+  // Contadores das 3 abas
+  const soroDone = habits.filter(h => h.name.includes('Soro') && h.completed).length;
+  const soroTotal = habits.filter(h => h.name.includes('Soro')).length;
+  const minoxDone = habits.filter(h => h.name.includes('Minoxidil') && h.completed).length;
+  const minoxTotal = habits.filter(h => h.name.includes('Minoxidil')).length;
+  const mentalDone = habits.filter(h => h.name.includes('Caderno') && h.completed).length;
+  const mentalTotal = habits.filter(h => h.name.includes('Caderno')).length;
+
+  const filteredHabits = habits.filter(h => {
+    if (activeCategoryFilter === 'TODOS') return true;
+    if (activeCategoryFilter === 'SOROS') return h.name.includes('Soro');
+    if (activeCategoryFilter === 'MINOXIDIL') return h.name.includes('Minoxidil');
+    if (activeCategoryFilter === 'MENTAL') return h.name.includes('Caderno');
+    return true;
+  });
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-16">
       {/* Header com Saudação e Data */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400 mb-1 flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5" />
             <span>{dateCapitalized}</span>
           </p>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <span>{greeting}!</span>
-            <Sparkles className="w-5 h-5 text-amber-400" />
           </h2>
         </div>
 
@@ -143,99 +160,138 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Painel de Destaque: Acompanhamento de Soros Médicos */}
-      <div className="p-5 rounded-2xl bg-gradient-to-br from-[#121c29] via-[#161D29] to-[#121824] border border-cyan-500/20 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-sm">
-              <Activity className="w-5 h-5" />
+      {/* Painel das 3 Frentes da Planilha (Soros, Minoxidil, Caderno Mental) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Card 1: Soros Médicos */}
+        <div 
+          onClick={() => setActiveCategoryFilter(activeCategoryFilter === 'SOROS' ? 'TODOS' : 'SOROS')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+            activeCategoryFilter === 'SOROS'
+              ? 'bg-[#121c29] border-cyan-500 shadow-md ring-2 ring-cyan-500/30'
+              : 'bg-[#161D29] border-white/10 hover:border-cyan-500/40'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <Activity className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-white tracking-tight">
-                Acompanhamento Diário de Soros Médicos
-              </h3>
-              <p className="text-xs text-slate-400">
-                Tratamento de 90 dias • 07/11/2026 até 04/02/2027
-              </p>
-            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              90 Dias
+            </span>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20 self-start sm:self-auto">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            90 Dias Programados
-          </span>
+          <h4 className="text-sm font-bold text-white">Soros Médicos</h4>
+          <p className="text-[11px] text-slate-400 mt-0.5">Manhã & Noite</p>
+          <div className="mt-2.5 flex items-center justify-between text-xs">
+            <span className="text-slate-400">Hoje:</span>
+            <span className="font-mono font-bold text-cyan-400">{soroDone}/{soroTotal} feito</span>
+          </div>
         </div>
 
-        {/* Mini KPIs da Planilha */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-          <div className="p-3 rounded-xl bg-[#0F141C]/80 border border-white/5">
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block flex items-center gap-1">
-              <Sun className="w-3 h-3 text-cyan-400" />
-              Soro Manhã
-            </span>
-            <span className="text-lg font-black text-cyan-400 font-mono">
-              {habits.find(h => h.name.includes('Manhã'))?.completed ? 'Feito Hoje' : 'Pendente'}
-            </span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#0F141C]/80 border border-white/5">
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block flex items-center gap-1">
-              <Moon className="w-3 h-3 text-purple-400" />
-              Soro Noite
-            </span>
-            <span className="text-lg font-black text-purple-400 font-mono">
-              {habits.find(h => h.name.includes('Noite'))?.completed ? 'Feito Hoje' : 'Pendente'}
+        {/* Card 2: Minoxidil */}
+        <div 
+          onClick={() => setActiveCategoryFilter(activeCategoryFilter === 'MINOXIDIL' ? 'TODOS' : 'MINOXIDIL')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+            activeCategoryFilter === 'MINOXIDIL'
+              ? 'bg-[#161c2b] border-blue-500 shadow-md ring-2 ring-blue-500/30'
+              : 'bg-[#161D29] border-white/10 hover:border-blue-500/40'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <Droplets className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              300 Dias
             </span>
           </div>
+          <h4 className="text-sm font-bold text-white">Minoxidil</h4>
+          <p className="text-[11px] text-slate-400 mt-0.5">Manhã & Tarde/Noite</p>
+          <div className="mt-2.5 flex items-center justify-between text-xs">
+            <span className="text-slate-400">Hoje:</span>
+            <span className="font-mono font-bold text-blue-400">{minoxDone}/{minoxTotal} feito</span>
+          </div>
+        </div>
 
-          <div className="p-3 rounded-xl bg-[#0F141C]/80 border border-white/5">
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-              Status de Hoje
-            </span>
-            <span className="text-lg font-black text-emerald-400 font-mono">
-              {completedHabits === habits.length && habits.length > 0 ? 'Completo' : completedHabits > 0 ? 'Parcial' : 'Pendente'}
+        {/* Card 3: Caderno Mental */}
+        <div 
+          onClick={() => setActiveCategoryFilter(activeCategoryFilter === 'MENTAL' ? 'TODOS' : 'MENTAL')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+            activeCategoryFilter === 'MENTAL'
+              ? 'bg-[#211a14] border-amber-500 shadow-md ring-2 ring-amber-500/30'
+              : 'bg-[#161D29] border-white/10 hover:border-amber-500/40'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Brain className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              90 Dias
             </span>
           </div>
-
-          <div className="p-3 rounded-xl bg-[#0F141C]/80 border border-white/5">
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-indigo-400" />
-              Adesão Hoje
-            </span>
-            <span className="text-lg font-black text-indigo-400 font-mono">
-              {completionPercentage}%
-            </span>
+          <h4 className="text-sm font-bold text-white">Caderno Mental</h4>
+          <p className="text-[11px] text-slate-400 mt-0.5">Reflexões & Humor</p>
+          <div className="mt-2.5 flex items-center justify-between text-xs">
+            <span className="text-slate-400">Hoje:</span>
+            <span className="font-mono font-bold text-amber-400">{mentalDone}/{mentalTotal} feito</span>
           </div>
         </div>
       </div>
 
-      {/* Grid de Seções: Hábitos e Tarefas */}
+      {/* Barra de Progresso Geral */}
+      <div className="p-4 rounded-2xl bg-[#161D29] border border-white/10 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400">
+            <TrendingUp className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-white">Adesão Total do Dia</span>
+            <p className="text-[11px] text-slate-400">
+              {completedTotal} de {totalItems} itens concluídos
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-32 hidden sm:block h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-400 rounded-full transition-all duration-500"
+              style={{ width: `${completionPercentage}%` }}
+            />
+          </div>
+          <span className="text-lg font-black text-emerald-400 font-mono">
+            {completionPercentage}%
+          </span>
+        </div>
+      </div>
+
+      {/* Grid de Hábitos e Tarefas */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Seção de Hábitos de Soro */}
+        {/* Seção de Hábitos */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-cyan-400" />
+              <Sparkles className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                Aplicações de Hoje ({completedHabits}/{habits.length})
+                Hábitos ({completedHabits}/{habits.length})
               </h3>
             </div>
-            <button
-              onClick={() => onOpenQuickAdd('habit')}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Adicionar</span>
-            </button>
+            {activeCategoryFilter !== 'TODOS' && (
+              <button
+                onClick={() => setActiveCategoryFilter('TODOS')}
+                className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer"
+              >
+                Limpar Filtro ({activeCategoryFilter})
+              </button>
+            )}
           </div>
 
           <div className="space-y-3">
-            {habits.map((habit) => {
+            {filteredHabits.map((habit) => {
               const isDone = habit.completed;
               const isBusy = updatingId === habit.id;
               const isMorning = habit.name.toLowerCase().includes('manhã');
+              const isMental = habit.name.toLowerCase().includes('caderno');
+              const isMinox = habit.name.toLowerCase().includes('minoxidil');
 
               return (
                 <div
@@ -274,7 +330,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                               isDone ? 'line-through text-slate-500' : 'text-slate-100'
                             }`}
                           >
-                            {isMorning ? <Sun className="w-4 h-4 text-cyan-400" /> : <Moon className="w-4 h-4 text-purple-400" />}
+                            {isMental ? (
+                              <Brain className="w-4 h-4 text-amber-400 shrink-0" />
+                            ) : isMinox ? (
+                              <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
+                            ) : isMorning ? (
+                              <Sun className="w-4 h-4 text-cyan-400 shrink-0" />
+                            ) : (
+                              <Moon className="w-4 h-4 text-purple-400 shrink-0" />
+                            )}
                             <span>{habit.name}</span>
                           </h4>
                           {habit.streak > 0 && (
@@ -290,7 +354,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Botão de Anotação de Sintomas */}
+                    {/* Botão de Anotação de Sintomas / Reflexão */}
                     <button
                       type="button"
                       onClick={(e) => handleOpenNotes(e, habit)}
@@ -299,17 +363,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
                           : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
                       }`}
-                      title="Registrar como se sentiu / sintomas"
+                      title="Registrar reflexão ou sintomas"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">{habit.notes ? 'Ver Nota' : '+ Sintomas'}</span>
+                      <span className="hidden sm:inline">
+                        {habit.notes ? 'Ver Nota' : isMental ? '+ Reflexão' : '+ Sintomas'}
+                      </span>
                     </button>
                   </div>
 
-                  {/* Exibição de Sintomas / Como se Sentiu */}
+                  {/* Exibição de Sintomas / Reflexão */}
                   {habit.notes && (
                     <div className="mt-1 px-3 py-2 rounded-xl bg-[#0F141C] border border-cyan-500/20 text-xs text-cyan-200/90 flex items-start gap-2">
-                      <span className="font-semibold text-cyan-400 shrink-0">Sintomas:</span>
+                      <span className="font-semibold text-cyan-400 shrink-0">
+                        {isMental ? 'Reflexão/Humor:' : 'Sintomas:'}
+                      </span>
                       <span className="italic">{habit.notes}</span>
                     </div>
                   )}
@@ -319,13 +387,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Seção de Tarefas de Apoio ao Tratamento */}
+        {/* Seção de Tarefas de Apoio */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <CheckSquare className="w-4 h-4 text-indigo-400" />
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                Avisos & Tarefas ({completedTasks}/{tasks.length})
+                Avisos & Prazos ({completedTasks}/{tasks.length})
               </h3>
             </div>
             <button
@@ -394,7 +462,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Modal para Adicionar / Editar Sintomas */}
+      {/* Modal para Adicionar / Editar Sintomas ou Reflexão */}
       {editingNotesHabit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-[#161D29] border border-white/10 rounded-2xl shadow-2xl p-5 space-y-4">
@@ -402,7 +470,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-cyan-400" />
                 <h4 className="font-bold text-sm text-white">
-                  Sintomas / Como se Sentiu ({editingNotesHabit.name})
+                  {editingNotesHabit.name.includes('Caderno') ? 'Reflexão & Humor' : 'Sintomas / Como se Sentiu'}
                 </h4>
               </div>
               <button
@@ -415,11 +483,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Observações diárias, reações ou sensações:
+                {editingNotesHabit.name.includes('Caderno')
+                  ? 'Como está seu humor, reflexões e foco hoje:'
+                  : 'Observações, sintomas ou sensações de hoje:'}
               </label>
               <textarea
                 rows={3}
-                placeholder="Ex: sem crises, nariz desentupido, me senti bem..."
+                placeholder={
+                  editingNotesHabit.name.includes('Caderno')
+                    ? 'Ex: Dia produtivo, mente focada, sem ansiedade...'
+                    : 'Ex: Me senti bem, sem crises, nariz desentupido...'
+                }
                 value={notesInput}
                 onChange={(e) => setNotesInput(e.target.value)}
                 className="w-full p-3 rounded-xl bg-[#0F141C] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500"
@@ -440,7 +514,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 onClick={handleSaveNotes}
                 className="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md cursor-pointer"
               >
-                Salvar Sintomas
+                Salvar Registro
               </button>
             </div>
           </div>
