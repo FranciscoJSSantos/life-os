@@ -1,6 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { CreateHabitModalComponent } from './shared/components/create-habit-modal/create-habit-modal.component';
+import { ApiService } from './core/services/api.service';
 
 interface NavItem {
   label: string;
@@ -11,12 +13,14 @@ interface NavItem {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, CreateHabitModalComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
 export class App {
-  protected readonly activeTab = signal<string>('dashboard');
+  private apiService = inject(ApiService);
+
+  protected readonly isModalOpen = signal<boolean>(false);
 
   protected readonly navItems: NavItem[] = [
     { label: 'Hoje', route: '', iconSvg: 'sun' },
@@ -30,7 +34,14 @@ export class App {
   ];
 
   openQuickAdd(): void {
-    // Ação do botão rápido (+)
-    console.log('Abrir modal de criação rápida (Hábito / Tarefa / Meta)');
+    this.isModalOpen.set(true);
+  }
+
+  closeQuickAdd(): void {
+    this.isModalOpen.set(false);
+  }
+
+  onHabitCreated(): void {
+    this.apiService.notifyHabitChanged();
   }
 }

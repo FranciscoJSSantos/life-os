@@ -1,0 +1,159 @@
+@if (isOpen) {
+  <div class="modal-backdrop" (click)="close.emit()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <h2>Criar Novo Hábito</h2>
+        <button type="button" class="close-btn" (click)="close.emit()">&times;</button>
+      </header>
+
+      <div class="modal-body">
+        <!-- Nome -->
+        <div class="form-group">
+          <label for="habitName">Nome do Hábito *</label>
+          <input 
+            id="habitName" 
+            type="text" 
+            [(ngModel)]="name" 
+            placeholder="Ex: Beber 2.5L de Água, Ler 20 Páginas..." 
+            class="form-control"
+            autofocus
+          />
+        </div>
+
+        <!-- Categoria & Cor -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="habitCategory">Categoria</label>
+            <select id="habitCategory" [(ngModel)]="selectedCategoryId" class="form-control">
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Cor</label>
+            <div class="color-picker-row">
+              @for (color of colors; track color) {
+                <button 
+                  type="button" 
+                  class="color-dot" 
+                  [style.background-color]="color"
+                  [class.active]="selectedColor === color"
+                  (click)="selectedColor = color"
+                ></button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Tipo do Hábito -->
+        <div class="form-group">
+          <label>Tipo de Registro</label>
+          <div class="type-selector">
+            <button 
+              type="button" 
+              class="type-pill" 
+              [class.active]="habitType === 'BOOLEAN'"
+              (click)="habitType = 'BOOLEAN'"
+            >
+              Sim / Não
+            </button>
+            <button 
+              type="button" 
+              class="type-pill" 
+              [class.active]="habitType === 'NUMERIC'"
+              (click)="habitType = 'NUMERIC'"
+            >
+              Quantitativo
+            </button>
+            <button 
+              type="button" 
+              class="type-pill" 
+              [class.active]="habitType === 'DURATION'"
+              (click)="habitType = 'DURATION'"
+            >
+              Tempo (Minutos)
+            </button>
+          </div>
+        </div>
+
+        <!-- Meta e Unidade (se não for booleano) -->
+        @if (habitType !== 'BOOLEAN') {
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Meta Diária</label>
+              <input 
+                type="number" 
+                [(ngModel)]="targetValue" 
+                class="form-control"
+                min="1"
+              />
+            </div>
+            <div class="form-group flex-1">
+              <label>Unidade</label>
+              <input 
+                type="text" 
+                [(ngModel)]="unit" 
+                [placeholder]="habitType === 'DURATION' ? 'min' : 'ml, páginas, km...'" 
+                class="form-control"
+              />
+            </div>
+          </div>
+        }
+
+        <!-- Frequência -->
+        <div class="form-group">
+          <label>Frequência</label>
+          <div class="freq-options">
+            <label class="radio-label">
+              <input 
+                type="radio" 
+                name="freqType" 
+                value="DAILY" 
+                [(ngModel)]="frequencyType"
+              />
+              <span>Todos os dias</span>
+            </label>
+            <label class="radio-label">
+              <input 
+                type="radio" 
+                name="freqType" 
+                value="WEEKLY_DAYS" 
+                [(ngModel)]="frequencyType"
+              />
+              <span>Dias específicos</span>
+            </label>
+          </div>
+
+          @if (frequencyType === 'WEEKLY_DAYS') {
+            <div class="weekdays-selector">
+              @for (day of selectedDays; track day.day) {
+                <button 
+                  type="button" 
+                  class="day-btn" 
+                  [class.active]="day.selected"
+                  (click)="toggleDay(day.day)"
+                >
+                  {{ day.label }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="close.emit()">Cancelar</button>
+        <button 
+          type="button" 
+          class="btn-save" 
+          [disabled]="!name.trim() || isSaving()"
+          (click)="save()"
+        >
+          @if (isSaving()) { Salvando... } @else { Salvar Hábito }
+        </button>
+      </footer>
+    </div>
+  </div>
+}

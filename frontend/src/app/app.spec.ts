@@ -1,15 +1,24 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { of } from 'rxjs';
 import { App } from './app';
+import { ApiService } from './core/services/api.service';
 
 describe('App', () => {
+  const mockApiService = {
+    getCategories: () => of([]),
+    getHealth: () => of({ status: 'healthy', app: 'LifeOS', timestamp: '', database: { status: 'connected', counts: { categories: 0, habits: 0, tasks: 0 } } }),
+    getTodayHabits: () => of([]),
+    refreshHabits$: of(),
+    notifyHabitChanged: () => {}
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideRouter([]),
-        provideHttpClient()
+        { provide: ApiService, useValue: mockApiService }
       ]
     }).compileComponents();
   });

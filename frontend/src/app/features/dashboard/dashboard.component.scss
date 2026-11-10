@@ -159,6 +159,33 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+
+    .empty-card {
+      text-align: center;
+      padding: 32px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      border: 1px dashed var(--border-color);
+
+      .empty-icon {
+        font-size: 2rem;
+        margin-bottom: 4px;
+      }
+      .empty-text {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .empty-sub {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        strong {
+          color: var(--accent-primary);
+        }
+      }
+    }
   }
 }
 

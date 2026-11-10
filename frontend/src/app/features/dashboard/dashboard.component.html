@@ -64,6 +64,14 @@
       </div>
 
       <div class="items-list">
+        @if (habits().length === 0) {
+          <div class="card empty-card">
+            <span class="empty-icon">✨</span>
+            <p class="empty-text">Nenhum hábito cadastrado para hoje.</p>
+            <p class="empty-sub">Clique no botão <strong>+</strong> flutuante para criar seu primeiro hábito!</p>
+          </div>
+        }
+
         @for (habit of habits(); track habit.id) {
           <div 
             class="card habit-card" 
@@ -89,9 +97,9 @@
                 <span class="habit-title">{{ habit.name }}</span>
                 <div class="habit-meta">
                   <span class="category-pill">{{ habit.category }}</span>
-                  @if (habit.type !== 'BOOLEAN') {
+                  @if (habit.habit_type !== 'BOOLEAN') {
                     <span class="value-pill">
-                      {{ habit.currentValue }}/{{ habit.targetValue }} {{ habit.unit }}
+                      {{ habit.current_value }}/{{ habit.target_value }} {{ habit.unit }}
                     </span>
                   }
                 </div>

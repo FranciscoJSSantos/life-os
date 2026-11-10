@@ -63,4 +63,11 @@
   >
     <span class="plus-icon">+</span>
   </button>
+
+  <!-- Modal de Criação de Hábito -->
+  <app-create-habit-modal 
+    [isOpen]="isModalOpen()"
+    (close)="closeQuickAdd()"
+    (habitCreated)="onHabitCreated()"
+  ></app-create-habit-modal>
 </div>

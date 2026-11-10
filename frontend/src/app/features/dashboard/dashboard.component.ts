@@ -1,20 +1,7 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService, HealthResponse } from '../../core/services/api.service';
-
-interface HabitItem {
-  id: string;
-  name: string;
-  category: string;
-  icon: string;
-  color: string;
-  type: 'BOOLEAN' | 'NUMERIC' | 'DURATION';
-  targetValue: number;
-  currentValue: number;
-  unit?: string;
-  completed: boolean;
-  streak: number;
-}
+import { Subscription } from 'rxjs';
+import { ApiService, HealthResponse, HabitTodayItem } from '../../core/services/api.service';
 
 interface TaskItem {
   id: string;
@@ -32,74 +19,24 @@ interface TaskItem {
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private apiService = inject(ApiService);
+  private sub = new Subscription();
 
   protected readonly todayFormatted = signal<string>('');
   protected readonly completionPercentage = signal<number>(0);
   protected readonly backendStatus = signal<HealthResponse | null>(null);
   protected readonly backendError = signal<boolean>(false);
+  protected readonly isLoading = signal<boolean>(true);
 
-  // Hábitos de demonstração interativos no estilo HabitNow
-  protected readonly habits = signal<HabitItem[]>([
-    {
-      id: 'h1',
-      name: 'Beber 2.5L de Água',
-      category: 'Saúde',
-      icon: 'droplet',
-      color: '#06B6D4',
-      type: 'NUMERIC',
-      targetValue: 2500,
-      currentValue: 1500,
-      unit: 'ml',
-      completed: false,
-      streak: 7
-    },
-    {
-      id: 'h2',
-      name: 'Estudo Diário de Código',
-      category: 'Estudos',
-      icon: 'code',
-      color: '#6366F1',
-      type: 'DURATION',
-      targetValue: 60,
-      currentValue: 60,
-      unit: 'min',
-      completed: true,
-      streak: 12
-    },
-    {
-      id: 'h3',
-      name: 'Treino / Exercício Físico',
-      category: 'Saúde',
-      icon: 'activity',
-      color: '#10B981',
-      type: 'BOOLEAN',
-      targetValue: 1,
-      currentValue: 1,
-      completed: true,
-      streak: 4
-    },
-    {
-      id: 'h4',
-      name: 'Leitura de Livro',
-      category: 'Desenvolvimento',
-      icon: 'book-open',
-      color: '#A855F7',
-      type: 'DURATION',
-      targetValue: 30,
-      currentValue: 0,
-      unit: 'min',
-      completed: false,
-      streak: 9
-    }
-  ]);
+  // Hábitos reais vindos do backend SQLite
+  protected readonly habits = signal<HabitTodayItem[]>([]);
 
-  // Tarefas do dia
+  // Tarefas locais (Sprint 3 integrará persistência de tarefas)
   protected readonly tasks = signal<TaskItem[]>([
     {
       id: 't1',
-      title: 'Configurar migrações e banco de dados SQLite',
+      title: 'Estruturação do Backend e Frontend',
       category: 'Projeto',
       priority: 'HIGH',
       completed: true,
@@ -107,15 +44,15 @@ export class DashboardComponent implements OnInit {
     },
     {
       id: 't2',
-      title: 'Validar interface e componentes do LifeOS',
+      title: 'Validar persistência de hábitos no SQLite',
       category: 'Design',
       priority: 'MEDIUM',
-      completed: false,
+      completed: true,
       dueTime: '15:30'
     },
     {
       id: 't3',
-      title: 'Planejar módulo de recorrências personalizadas',
+      title: 'Planejar módulo de rotinas e calendário',
       category: 'Planejamento',
       priority: 'LOW',
       completed: false
@@ -132,11 +69,41 @@ export class DashboardComponent implements OnInit {
     const formatted = now.toLocaleDateString('pt-BR', options);
     this.todayFormatted.set(formatted.charAt(0).toUpperCase() + formatted.slice(1));
 
-    this.calculateCompletion();
+    this.loadData();
+
+    // Escutar eventos de criação/atualização de hábitos
+    this.sub.add(
+      this.apiService.refreshHabits$.subscribe(() => {
+        this.loadHabits();
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.sub.unsubscribe();
+  }
+
+  loadData(): void {
+    this.isLoading.set(true);
     this.checkBackend();
+    this.loadHabits();
+  }
+
+  loadHabits(): void {
+    this.apiService.getTodayHabits().subscribe({
+      next: (items) => {
+        this.habits.set(items);
+        this.calculateCompletion();
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.isLoading.set(false);
+      }
+    });
   }
 
   toggleHabit(habitId: string): void {
+    // Atualização otimista na UI
     this.habits.update(items =>
       items.map(h => {
         if (h.id === habitId) {
@@ -144,7 +111,7 @@ export class DashboardComponent implements OnInit {
           return {
             ...h,
             completed: newCompleted,
-            currentValue: newCompleted ? h.targetValue : 0,
+            current_value: newCompleted ? h.target_value : 0,
             streak: newCompleted ? h.streak + 1 : Math.max(0, h.streak - 1)
           };
         }
@@ -152,6 +119,21 @@ export class DashboardComponent implements OnInit {
       })
     );
     this.calculateCompletion();
+
+    // Persistir no backend SQLite
+    this.apiService.toggleHabit(habitId).subscribe({
+      next: (updatedItem) => {
+        this.habits.update(items =>
+          items.map(h => (h.id === habitId ? updatedItem : h))
+        );
+        this.calculateCompletion();
+      },
+      error: (err) => {
+        console.error('Erro ao alternar hábito:', err);
+        // Recarregar estado real do banco em caso de erro
+        this.loadHabits();
+      }
+    });
   }
 
   toggleTask(taskId: string): void {
