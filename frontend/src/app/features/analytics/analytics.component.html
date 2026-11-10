@@ -1,0 +1,85 @@
+<div class="analytics-container">
+  <header class="page-header">
+    <div>
+      <span class="page-subtitle">Indicadores & Consistência</span>
+      <h1 class="page-title">Estatísticas e Heatmaps</h1>
+    </div>
+  </header>
+
+  <!-- KPI Overview Cards -->
+  @if (overview(); as stats) {
+    <div class="kpi-grid">
+      <div class="card kpi-card">
+        <span class="kpi-label">Taxa Semanal</span>
+        <h2 class="kpi-value text-accent">{{ stats.weekly_completion_rate }}%</h2>
+        <span class="kpi-sub">Últimos 7 dias</span>
+      </div>
+
+      <div class="card kpi-card">
+        <span class="kpi-label">Maior Sequência</span>
+        <h2 class="kpi-value text-warning">
+          🔥 {{ stats.best_streak_count }}d
+        </h2>
+        <span class="kpi-sub">{{ stats.best_streak_habit || 'Nenhum' }}</span>
+      </div>
+
+      <div class="card kpi-card">
+        <span class="kpi-label">Hábitos Ativos</span>
+        <h2 class="kpi-value text-success">{{ stats.active_habits }}</h2>
+        <span class="kpi-sub">De {{ stats.total_habits }} cadastrados</span>
+      </div>
+
+      <div class="card kpi-card">
+        <span class="kpi-label">Tarefas Concluídas</span>
+        <h2 class="kpi-value text-cyan">{{ stats.completed_tasks }}</h2>
+        <span class="kpi-sub">De {{ stats.total_tasks }} no total</span>
+      </div>
+    </div>
+  }
+
+  <!-- Heatmaps por Hábito (Estilo GitHub / HabitNow) -->
+  <section class="heatmaps-section">
+    <div class="section-title-row">
+      <h3>Histórico de Consistência (Heatmaps)</h3>
+      <span class="section-sub">Últimos 90 dias de cada hábito</span>
+    </div>
+
+    @if (isLoading()) {
+      <div class="card loading-card">Carregando métricas...</div>
+    } @else if (habitsHeatmaps().length === 0) {
+      <div class="card empty-card">
+        <p>Cadastre hábitos para visualizar o mapa de calor de consistência.</p>
+      </div>
+    } @else {
+      <div class="heatmaps-list">
+        @for (item of habitsHeatmaps(); track item.id) {
+          <div class="card habit-heatmap-card">
+            <div class="heatmap-header">
+              <span class="habit-name">{{ item.name }}</span>
+              <div class="legend">
+                <span class="legend-text">Menos</span>
+                <span class="legend-cell level-0"></span>
+                <span class="legend-cell level-1"></span>
+                <span class="legend-cell level-2"></span>
+                <span class="legend-cell level-3"></span>
+                <span class="legend-cell level-4"></span>
+                <span class="legend-text">Mais</span>
+              </div>
+            </div>
+
+            <!-- Heatmap Grid -->
+            <div class="heatmap-grid">
+              @for (day of item.heatmap; track day.date) {
+                <div 
+                  class="heatmap-cell" 
+                  [class]="'level-' + day.intensity"
+                  [title]="day.date + ': ' + (day.completed ? 'Concluído' : day.value > 0 ? day.value : 'Sem registro')"
+                ></div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</div>

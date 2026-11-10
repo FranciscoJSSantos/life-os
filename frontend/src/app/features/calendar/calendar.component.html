@@ -1,0 +1,89 @@
+<div class="calendar-container">
+  <header class="calendar-header">
+    <div>
+      <span class="page-subtitle">Acompanhamento Temporal</span>
+      <h1 class="page-title">{{ getMonthName() }}</h1>
+    </div>
+
+    <div class="month-controls">
+      <button type="button" class="btn-nav" (click)="previousMonth()" title="Mês Anterior">&larr;</button>
+      <button type="button" class="btn-nav" (click)="nextMonth()" title="Próximo Mês">&rarr;</button>
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <div class="card loading-card">Carregando calendário...</div>
+  } @else if (monthData(); as data) {
+    <div class="calendar-layout">
+      <!-- Grade do Calendário -->
+      <div class="card calendar-card">
+        <div class="weekdays-grid">
+          @for (dayName of weekHeader; track dayName) {
+            <span class="weekday-cell">{{ dayName }}</span>
+          }
+        </div>
+
+        <div class="days-grid">
+          <!-- Espaçadores para alinhar o primeiro dia no dia correto da semana -->
+          @for (_ of [].constructor(data.days[0].weekday); track $index) {
+            <div class="day-cell empty-cell"></div>
+          }
+
+          @for (day of data.days; track day.date) {
+            <button 
+              type="button" 
+              class="day-cell" 
+              [class.active]="selectedDay()?.date === day.date"
+              [class.has-activity]="(day.habits_total + day.tasks_total) > 0"
+              [class.perfect-day]="day.completion_rate === 100 && (day.habits_total + day.tasks_total) > 0"
+              (click)="selectDay(day)"
+            >
+              <span class="day-number">{{ getDayNumber(day.date) }}</span>
+              
+              @if ((day.habits_total + day.tasks_total) > 0) {
+                <div class="completion-pill" [style.--rate.%]="day.completion_rate">
+                  <span class="rate-text">{{ day.completion_rate | number:'1.0-0' }}%</span>
+                </div>
+              }
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Painel de Detalhes do Dia Selecionado -->
+      @if (selectedDay(); as day) {
+        <div class="card day-details-card">
+          <div class="details-header">
+            <h3>Detalhes do Dia</h3>
+            <span class="date-tag">{{ day.date }}</span>
+          </div>
+
+          <div class="stats-overview">
+            <div class="stat-box">
+              <span class="stat-label">Taxa Geral</span>
+              <span class="stat-value highlight">{{ day.completion_rate }}%</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Hábitos</span>
+              <span class="stat-value">{{ day.habits_completed }}/{{ day.habits_total }}</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Tarefas</span>
+              <span class="stat-value">{{ day.tasks_completed }}/{{ day.tasks_total }}</span>
+            </div>
+          </div>
+
+          <div class="details-notes">
+            @if ((day.habits_total + day.tasks_total) === 0) {
+              <p class="empty-note">Nenhuma atividade registrada ou prevista para esta data.</p>
+            } @else if (day.completion_rate === 100) {
+              <p class="success-note">🎉 Dia perfeito! Todas as atividades concluídas com sucesso.</p>
+            } @else {
+              <p class="partial-note">Atividades em andamento ou parcialmente concluídas.</p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

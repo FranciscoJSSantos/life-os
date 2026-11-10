@@ -1,0 +1,51 @@
+<div class="routines-container">
+  <header class="page-header">
+    <div>
+      <span class="page-subtitle">Planejamento e Ritmo Diário</span>
+      <h1 class="page-title">Rotinas por Período</h1>
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <div class="card loading-card">Carregando rotinas...</div>
+  } @else {
+    <div class="routines-grid">
+      @for (routine of routines(); track routine.id) {
+        <div class="card routine-card">
+          <div class="routine-top">
+            <div>
+              <h2 class="routine-name">{{ routine.name }}</h2>
+              @if (routine.description) {
+                <p class="routine-desc">{{ routine.description }}</p>
+              }
+            </div>
+            <span class="badge badge-primary">
+              {{ routine.items.length }} atividades
+            </span>
+          </div>
+
+          <div class="routine-timeline">
+            @for (item of routine.items; track item.id) {
+              <div class="timeline-item">
+                <div class="time-col">
+                  @if (item.start_time) {
+                    <span class="start-time">{{ item.start_time }}</span>
+                  }
+                  @if (item.duration_minutes) {
+                    <span class="duration-tag">{{ item.duration_minutes }}m</span>
+                  }
+                </div>
+
+                <div class="timeline-dot"></div>
+
+                <div class="content-col">
+                  <span class="item-title">{{ item.title }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

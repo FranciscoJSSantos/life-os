@@ -1,0 +1,136 @@
+.routines-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+
+  .page-subtitle {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .page-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 4px;
+  }
+}
+
+.loading-card {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 30px;
+}
+
+.routines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.routine-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+
+  .routine-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+
+    .routine-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .routine-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+  }
+
+  .routine-timeline {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding-left: 10px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      bottom: 14px;
+      left: 77px;
+      width: 2px;
+      background-color: var(--border-color);
+    }
+
+    .timeline-item {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 10px 0;
+      position: relative;
+
+      .time-col {
+        width: 58px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+
+        .start-time {
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+        .duration-tag {
+          font-size: 0.72rem;
+          color: var(--text-muted);
+        }
+      }
+
+      .timeline-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: var(--accent-primary);
+        border: 2px solid var(--bg-card);
+        box-shadow: 0 0 6px var(--accent-primary);
+        z-index: 1;
+      }
+
+      .content-col {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        padding: 10px 14px;
+        border-radius: var(--border-radius-sm);
+
+        .item-title {
+          font-size: 0.92rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+      }
+    }
+  }
+}

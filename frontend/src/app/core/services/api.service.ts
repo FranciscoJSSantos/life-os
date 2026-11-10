@@ -12,6 +12,7 @@ export interface HealthResponse {
       categories: number;
       habits: number;
       tasks: number;
+      routines: number;
     };
   };
 }
@@ -79,6 +80,62 @@ export interface CreateTaskDto {
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   due_date?: string;
   subtasks?: { title: string; completed: boolean }[];
+}
+
+export interface RoutineItem {
+  id: string;
+  routine_id: string;
+  title: string;
+  start_time?: string;
+  duration_minutes?: number;
+  position: number;
+  linked_habit_id?: string;
+  linked_task_id?: string;
+}
+
+export interface Routine {
+  id: string;
+  name: string;
+  description?: string;
+  active: boolean;
+  days_of_week?: string;
+  items: RoutineItem[];
+}
+
+export interface CalendarDayData {
+  date: string;
+  weekday: number;
+  habits_total: number;
+  habits_completed: number;
+  tasks_total: number;
+  tasks_completed: number;
+  completion_rate: number;
+}
+
+export interface CalendarMonthRead {
+  year: number;
+  month: number;
+  days: CalendarDayData[];
+}
+
+export interface HeatmapDay {
+  date: string;
+  value: number;
+  target_value: number;
+  completed: boolean;
+  intensity: number;
+}
+
+export interface AnalyticsOverview {
+  total_habits: number;
+  active_habits: number;
+  total_tasks: number;
+  completed_tasks: number;
+  best_streak_habit: string | null;
+  best_streak_count: number;
+  weekly_completion_rate: number;
+  monthly_completion_rate: number;
+  total_completed_logs: number;
 }
 
 @Injectable({
@@ -155,5 +212,32 @@ export class ApiService {
 
   listAllTasks(): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/tasks`);
+  }
+
+  // Routines
+  getRoutines(activeOnly = false): Observable<Routine[]> {
+    return this.http.get<Routine[]>(`${this.baseUrl}/routines`, {
+      params: activeOnly ? new HttpParams().set('active_only', 'true') : undefined
+    });
+  }
+
+  // Calendar
+  getCalendar(year: number, month: number): Observable<CalendarMonthRead> {
+    return this.http.get<CalendarMonthRead>(`${this.baseUrl}/calendar`, {
+      params: new HttpParams().set('year', year.toString()).set('month', month.toString())
+    });
+  }
+
+  // Analytics & Heatmap
+  getAnalyticsOverview(): Observable<AnalyticsOverview> {
+    return this.http.get<AnalyticsOverview>(`${this.baseUrl}/analytics/overview`);
+  }
+
+  getHabitHeatmap(habitId: string, year?: number): Observable<HeatmapDay[]> {
+    let params = new HttpParams();
+    if (year) {
+      params = params.set('year', year.toString());
+    }
+    return this.http.get<HeatmapDay[]>(`${this.baseUrl}/analytics/heatmap/${habitId}`, { params });
   }
 }
