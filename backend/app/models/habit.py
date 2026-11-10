@@ -39,6 +39,7 @@ class Habit(Base, TimestampMixin):
     habit_type: Mapped[HabitType] = mapped_column(SqlEnum(HabitType), default=HabitType.BOOLEAN, nullable=False)
     target_value: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
     unit: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    periods: Mapped[str | None] = mapped_column(String(200), nullable=True) # Ex: "Manhã,Noite" ou "Manhã,Tarde,Noite"
     status: Mapped[HabitStatus] = mapped_column(SqlEnum(HabitStatus), default=HabitStatus.ACTIVE, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -71,6 +72,7 @@ class HabitLog(Base, TimestampMixin):
     value: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[LogStatus] = mapped_column(SqlEnum(LogStatus), default=LogStatus.COMPLETED, nullable=False)
+    period: Mapped[str | None] = mapped_column(String(50), nullable=True) # Ex: "Manhã", "Tarde", "Noite"
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     habit = relationship("Habit", back_populates="logs")

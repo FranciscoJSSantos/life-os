@@ -27,6 +27,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const [habitType, setHabitType] = useState<'BOOLEAN' | 'NUMERIC' | 'DURATION'>('BOOLEAN');
   const [targetValue, setTargetValue] = useState<number>(1);
   const [unit, setUnit] = useState<string>('');
+  const [habitPeriods, setHabitPeriods] = useState<string>('');
   const [freqType, setFreqType] = useState<'DAILY' | 'WEEKLY_DAYS'>('DAILY');
   const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
 
@@ -91,9 +92,10 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
         name: habitName.trim(),
         description: habitDesc.trim() || undefined,
         category_id: habitCategory || undefined,
-        habit_type: habitType,
-        target_value: habitType === 'BOOLEAN' ? 1 : Number(targetValue),
-        unit: habitType === 'NUMERIC' ? (unit || 'vezes') : (habitType === 'DURATION' ? 'min' : undefined),
+        habit_type: habitPeriods ? 'NUMERIC' : habitType,
+        target_value: habitPeriods ? habitPeriods.split(',').length : (habitType === 'BOOLEAN' ? 1 : Number(targetValue)),
+        unit: habitPeriods ? 'doses' : (habitType === 'NUMERIC' ? (unit || 'vezes') : (habitType === 'DURATION' ? 'min' : undefined)),
+        periods: habitPeriods || undefined,
         schedule: {
           frequency_type: freqType,
           weekdays: freqType === 'WEEKLY_DAYS' ? selectedWeekdays.join(',') : '0,1,2,3,4,5,6'
@@ -254,6 +256,59 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Eventos / Turnos no Dia */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Frequência Diária / Turnos
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHabitPeriods('');
+                    }}
+                    className={`p-2 rounded-xl border text-center text-xs font-medium cursor-pointer transition-all ${
+                      !habitPeriods
+                        ? 'border-indigo-500 bg-indigo-500/15 text-white'
+                        : 'border-white/5 bg-[#0F141C] text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    1x ao dia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHabitPeriods('Manhã,Noite');
+                    }}
+                    className={`p-2 rounded-xl border text-center text-xs font-medium cursor-pointer transition-all ${
+                      habitPeriods === 'Manhã,Noite'
+                        ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200'
+                        : 'border-white/5 bg-[#0F141C] text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    2x (Manhã & Noite)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHabitPeriods('Manhã,Tarde,Noite');
+                    }}
+                    className={`p-2 rounded-xl border text-center text-xs font-medium cursor-pointer transition-all ${
+                      habitPeriods === 'Manhã,Tarde,Noite'
+                        ? 'border-purple-500 bg-purple-500/15 text-purple-200'
+                        : 'border-white/5 bg-[#0F141C] text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    3x (3 Turnos)
+                  </button>
+                </div>
+                {habitPeriods && (
+                  <p className="text-[11px] text-cyan-400 mt-1">
+                    Cria checks separados para cada turno ({habitPeriods.split(',').join(' e ')}) e permite marcar 50% parcial!
+                  </p>
+                )}
               </div>
 
               {/* Tipo de Hábito */}

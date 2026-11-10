@@ -129,3 +129,38 @@ def test_challenges_crud_and_accuracy():
         del_h_res = client.delete(f"/api/v1/habits/{h_temp['id']}?hard_delete=true")
         assert del_h_res.status_code == 200
         client.delete(f"/api/v1/challenges/{new_ch['id']}")
+
+def test_habit_multi_periods_and_partial_completion():
+    with TestClient(app) as client:
+        # Criar hábito com períodos Manhã e Noite
+        payload = {
+            "name": "Soro Teste Periodos",
+            "habit_type": "NUMERIC",
+            "target_value": 2.0,
+            "unit": "doses",
+            "periods": "Manhã,Noite"
+        }
+        create_res = client.post("/api/v1/habits", json=payload)
+        assert create_res.status_code == 201
+        h_id = create_res.json()["id"]
+
+        # Marcar apenas Manhã (50% do dia)
+        toggle_m = client.post(f"/api/v1/habits/{h_id}/toggle?period=Manhã&notes=Dose%20ok")
+        assert toggle_m.status_code == 200
+        data_m = toggle_m.json()
+        assert data_m["completed"] is False
+        assert data_m["is_partial"] is True
+        assert data_m["completion_rate"] == 50.0
+        assert data_m["current_value"] == 1.0
+
+        # Marcar Noite (100% do dia)
+        toggle_n = client.post(f"/api/v1/habits/{h_id}/toggle?period=Noite")
+        assert toggle_n.status_code == 200
+        data_n = toggle_n.json()
+        assert data_n["completed"] is True
+        assert data_n["is_partial"] is False
+        assert data_n["completion_rate"] == 100.0
+        assert data_n["current_value"] == 2.0
+
+        # Limpar hábito de teste
+        client.delete(f"/api/v1/habits/{h_id}?hard_delete=true")

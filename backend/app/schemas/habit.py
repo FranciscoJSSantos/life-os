@@ -41,6 +41,11 @@ class HabitLogRead(BaseModel):
     notes: str | None
     created_at: datetime
 
+class HabitPeriodStatus(BaseModel):
+    period: str
+    completed: bool = False
+    notes: str | None = None
+
 class HabitBase(BaseModel):
     name: str = Field(..., max_length=150)
     description: str | None = None
@@ -50,6 +55,7 @@ class HabitBase(BaseModel):
     habit_type: HabitType = HabitType.BOOLEAN
     target_value: float = Field(default=1.0, gt=0)
     unit: str | None = Field(default=None, max_length=30)
+    periods: str | None = None
     start_date: date = Field(default_factory=date.today)
     end_date: date | None = None
 
@@ -65,6 +71,7 @@ class HabitUpdate(BaseModel):
     habit_type: HabitType | None = None
     target_value: float | None = Field(None, gt=0)
     unit: str | None = None
+    periods: str | None = None
     status: HabitStatus | None = None
     end_date: date | None = None
 
@@ -90,7 +97,11 @@ class HabitTodayItem(BaseModel):
     target_value: float
     current_value: float
     unit: str | None = None
+    periods: list[str] = Field(default_factory=list)
+    period_statuses: list[HabitPeriodStatus] = Field(default_factory=list)
     completed: bool = False
+    is_partial: bool = False
+    completion_rate: float = 0.0
     streak: int = 0
     logs_count: int = 0
     notes: str | None = None

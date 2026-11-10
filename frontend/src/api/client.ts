@@ -23,6 +23,12 @@ export interface Category {
   icon: string;
 }
 
+export interface HabitPeriodStatus {
+  period: string;
+  completed: boolean;
+  notes?: string;
+}
+
 export interface HabitTodayItem {
   id: string;
   name: string;
@@ -35,7 +41,11 @@ export interface HabitTodayItem {
   target_value: number;
   current_value: number;
   unit?: string;
+  periods?: string[];
+  period_statuses?: HabitPeriodStatus[];
   completed: boolean;
+  is_partial?: boolean;
+  completion_rate?: number;
   streak: number;
   logs_count: number;
   notes?: string;
@@ -50,6 +60,7 @@ export interface CreateHabitDto {
   habit_type: 'BOOLEAN' | 'NUMERIC' | 'DURATION';
   target_value: number;
   unit?: string;
+  periods?: string;
   schedule?: {
     frequency_type: 'DAILY' | 'WEEKLY_DAYS' | 'INTERVAL' | 'MONTHLY_DAYS';
     weekdays?: string;
@@ -226,11 +237,12 @@ export const api = {
   getHealth: () => request<HealthResponse>('/health'),
   getCategories: () => request<Category[]>('/categories'),
   getTodayHabits: (date?: string) => request<HabitTodayItem[]>(`/habits/today${date ? `?target_date=${date}` : ''}`),
-  toggleHabit: (habitId: string, date?: string, value?: number, notes?: string) => {
+  toggleHabit: (habitId: string, date?: string, value?: number, notes?: string, period?: string) => {
     const params = new URLSearchParams();
     if (date) params.append('target_date', date);
     if (value !== undefined) params.append('value', value.toString());
     if (notes !== undefined) params.append('notes', notes);
+    if (period) params.append('period', period);
     const query = params.toString() ? `?${params.toString()}` : '';
     return request<HabitTodayItem>(`/habits/${habitId}/toggle${query}`, { method: 'POST' });
   },

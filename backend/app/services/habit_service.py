@@ -168,7 +168,25 @@ class HabitService:
         return total >= target_value
 
     @staticmethod
+    def get_day_progress_ratio(db: Session, habit: Habit, target_date: date) -> float:
+        total = db.scalar(
+            select(func.coalesce(func.sum(HabitLog.value), 0.0))
+            .where(
+                and_(
+                    HabitLog.habit_id == habit.id,
+                    HabitLog.scheduled_date == target_date,
+                    HabitLog.status == LogStatus.COMPLETED
+                )
+            )
+        ) or 0.0
+        if habit.target_value <= 0:
+            return 1.0 if total > 0 else 0.0
+        return min(1.0, float(total) / float(habit.target_value))
+
+    @staticmethod
     def get_today_habits(db: Session, target_date: date | None = None) -> list[HabitTodayItem]:
+        from app.schemas.habit import HabitPeriodStatus
+
         ref_date = target_date or date.today()
         all_habits = db.scalars(
             select(Habit)
@@ -182,8 +200,8 @@ class HabitService:
             if not HabitService.is_habit_scheduled(habit, ref_date):
                 continue
 
-            # Somar valor dos logs da data
-            logs = db.scalars(
+            # Logs da data
+            logs = list(db.scalars(
                 select(HabitLog)
                 .where(
                     and_(
@@ -192,10 +210,29 @@ class HabitService:
                         HabitLog.status == LogStatus.COMPLETED
                     )
                 )
-            ).all()
+            ).all())
 
-            current_val = sum(log.value for log in logs)
+            # Períodos do dia (ex: "Manhã,Noite")
+            periods_list = [p.strip() for p in habit.periods.split(",") if p.strip()] if habit.periods else []
+            period_statuses: list[HabitPeriodStatus] = []
+
+            if periods_list:
+                for p in periods_list:
+                    p_log = next((l for l in logs if l.period == p), None)
+                    period_statuses.append(
+                        HabitPeriodStatus(
+                            period=p,
+                            completed=p_log is not None,
+                            notes=p_log.notes if p_log else None
+                        )
+                    )
+                current_val = float(sum(1 for ps in period_statuses if ps.completed))
+            else:
+                current_val = float(sum(log.value for log in logs))
+
             is_completed = current_val >= habit.target_value
+            is_partial = (current_val > 0) and (current_val < habit.target_value)
+            completion_rate = round((current_val / habit.target_value * 100), 1) if habit.target_value > 0 else 0.0
             streak = HabitService.calculate_streak(db, habit, ref_date)
 
             category_name = habit.category.name if habit.category else "Geral"
@@ -215,7 +252,11 @@ class HabitService:
                     target_value=habit.target_value,
                     current_value=current_val,
                     unit=habit.unit,
+                    periods=periods_list,
+                    period_statuses=period_statuses,
                     completed=is_completed,
+                    is_partial=is_partial,
+                    completion_rate=completion_rate,
                     streak=streak,
                     logs_count=len(logs),
                     notes=notes_str
@@ -230,50 +271,83 @@ class HabitService:
         habit_id: str, 
         target_date: date, 
         value: float | None = None,
-        notes: str | None = None
+        notes: str | None = None,
+        period: str | None = None
     ) -> HabitTodayItem:
         habit = db.get(Habit, habit_id)
         if not habit:
             raise ValueError("Hábito não encontrado")
 
-        # Buscar logs existentes para a data
-        existing_logs = list(db.scalars(
-            select(HabitLog).where(
-                and_(
-                    HabitLog.habit_id == habit_id,
-                    HabitLog.scheduled_date == target_date
+        if period:
+            existing_p_log = db.scalar(
+                select(HabitLog).where(
+                    and_(
+                        HabitLog.habit_id == habit_id,
+                        HabitLog.scheduled_date == target_date,
+                        HabitLog.period == period
+                    )
                 )
             )
-        ).all())
 
-        current_val = sum(log.value for log in existing_logs if log.status == LogStatus.COMPLETED)
-        is_already_completed = current_val >= habit.target_value
-
-        if is_already_completed and notes is None:
-            # Desmarcar: remove os logs do dia
-            for log in existing_logs:
-                db.delete(log)
-            db.commit()
-        elif is_already_completed and notes is not None:
-            # Apenas atualizar nota
-            for log in existing_logs:
-                log.notes = notes
-            db.commit()
+            if existing_p_log and notes is None:
+                # Desmarcar o período específico
+                db.delete(existing_p_log)
+                db.commit()
+            elif existing_p_log and notes is not None:
+                # Atualizar nota do período
+                existing_p_log.notes = notes
+                db.commit()
+            else:
+                # Registrar conclusão do período
+                new_log = HabitLog(
+                    habit_id=habit_id,
+                    scheduled_date=target_date,
+                    value=1.0,
+                    status=LogStatus.COMPLETED,
+                    period=period,
+                    notes=notes
+                )
+                db.add(new_log)
+                db.commit()
         else:
-            # Marcar como concluído
-            add_val = value if value is not None else (habit.target_value - current_val)
-            if add_val <= 0:
-                add_val = habit.target_value
+            # Buscar logs existentes para a data (geral)
+            existing_logs = list(db.scalars(
+                select(HabitLog).where(
+                    and_(
+                        HabitLog.habit_id == habit_id,
+                        HabitLog.scheduled_date == target_date
+                    )
+                )
+            ).all())
 
-            new_log = HabitLog(
-                habit_id=habit_id,
-                scheduled_date=target_date,
-                value=add_val,
-                status=LogStatus.COMPLETED,
-                notes=notes
-            )
-            db.add(new_log)
-            db.commit()
+            current_val = sum(log.value for log in existing_logs if log.status == LogStatus.COMPLETED)
+            is_already_completed = current_val >= habit.target_value
+
+            if is_already_completed and notes is None:
+                # Desmarcar: remove os logs do dia
+                for log in existing_logs:
+                    db.delete(log)
+                db.commit()
+            elif is_already_completed and notes is not None:
+                # Apenas atualizar nota
+                for log in existing_logs:
+                    log.notes = notes
+                db.commit()
+            else:
+                # Marcar como concluído
+                add_val = value if value is not None else (habit.target_value - current_val)
+                if add_val <= 0:
+                    add_val = habit.target_value
+
+                new_log = HabitLog(
+                    habit_id=habit_id,
+                    scheduled_date=target_date,
+                    value=add_val,
+                    status=LogStatus.COMPLETED,
+                    notes=notes
+                )
+                db.add(new_log)
+                db.commit()
 
         # Retornar estado atualizado
         updated_list = HabitService.get_today_habits(db, target_date)
@@ -292,9 +366,9 @@ class HabitService:
             color=habit.color,
             habit_type=habit.habit_type,
             target_value=habit.target_value,
-            current_value=0.0 if is_already_completed else habit.target_value,
+            current_value=habit.target_value,
             unit=habit.unit,
-            completed=not is_already_completed,
+            completed=True,
             streak=HabitService.calculate_streak(db, habit, target_date),
-            logs_count=0 if is_already_completed else 1
+            logs_count=1
         )

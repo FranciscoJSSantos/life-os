@@ -121,11 +121,24 @@ class ChallengeService:
                     is_sched = HabitService.is_habit_scheduled(h, check_date)
                     if is_sched:
                         habits_scheduled_today += 1
-                        habit_stats_map[h.id]["expected"] += 1
-                        is_done = HabitService.is_completed_on_date(db, h.id, check_date, h.target_value)
-                        if is_done:
-                            habit_stats_map[h.id]["completed"] += 1
-                        else:
+                        expected_units = int(h.target_value) if h.target_value >= 1 else 1
+                        habit_stats_map[h.id]["expected"] += expected_units
+
+                        actual_val = db.scalar(
+                            select(func.coalesce(func.sum(HabitLog.value), 0.0))
+                            .where(
+                                and_(
+                                    HabitLog.habit_id == h.id,
+                                    HabitLog.scheduled_date == check_date,
+                                    HabitLog.status == LogStatus.COMPLETED
+                                )
+                            )
+                        ) or 0.0
+
+                        completed_units = min(expected_units, int(actual_val))
+                        habit_stats_map[h.id]["completed"] += completed_units
+
+                        if actual_val < h.target_value:
                             day_all_completed = False
 
                 if habits_scheduled_today > 0 and day_all_completed:

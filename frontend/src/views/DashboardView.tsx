@@ -12,7 +12,9 @@ import {
   Activity,
   Brain,
   Droplets,
-  X
+  X,
+  Circle,
+  CheckCircle2
 } from 'lucide-react';
 import { api, type HabitTodayItem, type TaskTodayItem } from '../api/client';
 
@@ -30,16 +32,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenQuickAdd
 }) => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  
+  // Modal de notas com suporte a período
   const [editingNotesHabit, setEditingNotesHabit] = useState<HabitTodayItem | null>(null);
+  const [editingPeriod, setEditingPeriod] = useState<string | undefined>(undefined);
   const [notesInput, setNotesInput] = useState<string>('');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('TODOS');
 
-  // Cálculo de progresso diário
+  // Cálculo de progresso diário ponderado
   const totalItems = habits.length + tasks.length;
-  const completedHabits = habits.filter(h => h.completed).length;
+  const completedHabitsWeight = habits.reduce((acc, h) => {
+    if (h.target_value > 0) {
+      return acc + Math.min(1.0, h.current_value / h.target_value);
+    }
+    return acc + (h.completed ? 1.0 : 0.0);
+  }, 0);
   const completedTasks = tasks.filter(t => t.completed).length;
-  const completedTotal = completedHabits + completedTasks;
-  const completionPercentage = totalItems > 0 ? Math.round((completedTotal / totalItems) * 100) : 0;
+  const completedTotal = Math.round(completedHabitsWeight + completedTasks);
+  const completionPercentage = totalItems > 0 
+    ? Math.min(100, Math.round(((completedHabitsWeight + completedTasks) / totalItems) * 100)) 
+    : 0;
 
   // Formatação de data em português
   const todayDate = new Date();
@@ -54,10 +66,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const hour = todayDate.getHours();
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
 
-  const handleToggleHabit = async (habit: HabitTodayItem) => {
+  const handleToggleHabit = async (habit: HabitTodayItem, period?: string) => {
     try {
-      setUpdatingId(habit.id);
-      await api.toggleHabit(habit.id);
+      setUpdatingId(`${habit.id}-${period || 'all'}`);
+      await api.toggleHabit(habit.id, undefined, undefined, undefined, period);
       onReload();
     } catch (err) {
       console.error('Erro ao alternar hábito:', err);
@@ -66,18 +78,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
-  const handleOpenNotes = (e: React.MouseEvent, habit: HabitTodayItem) => {
+  const handleOpenNotes = (e: React.MouseEvent, habit: HabitTodayItem, period?: string) => {
     e.stopPropagation();
     setEditingNotesHabit(habit);
-    setNotesInput(habit.notes || '');
+    setEditingPeriod(period);
+    
+    // Obter notas existentes do período ou do hábito
+    if (period && habit.period_statuses) {
+      const ps = habit.period_statuses.find(p => p.period === period);
+      setNotesInput(ps?.notes || '');
+    } else {
+      setNotesInput(habit.notes || '');
+    }
   };
 
   const handleSaveNotes = async () => {
     if (!editingNotesHabit) return;
     try {
-      setUpdatingId(editingNotesHabit.id);
-      await api.toggleHabit(editingNotesHabit.id, undefined, undefined, notesInput.trim());
+      setUpdatingId(`${editingNotesHabit.id}-${editingPeriod || 'all'}`);
+      await api.toggleHabit(editingNotesHabit.id, undefined, undefined, notesInput.trim(), editingPeriod);
       setEditingNotesHabit(null);
+      setEditingPeriod(undefined);
       onReload();
     } catch (err) {
       console.error('Erro ao salvar observações/sintomas:', err);
@@ -111,19 +132,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
-  // Contadores das 3 abas
-  const soroDone = habits.filter(h => h.name.includes('Soro') && h.completed).length;
-  const soroTotal = habits.filter(h => h.name.includes('Soro')).length;
-  const minoxDone = habits.filter(h => h.name.includes('Minoxidil') && h.completed).length;
-  const minoxTotal = habits.filter(h => h.name.includes('Minoxidil')).length;
-  const mentalDone = habits.filter(h => h.name.includes('Caderno') && h.completed).length;
-  const mentalTotal = habits.filter(h => h.name.includes('Caderno')).length;
+  // Identificação dos 3 protocolos principais
+  const soroHabit = habits.find(h => h.name.toLowerCase().includes('soro'));
+  const minoxHabit = habits.find(h => h.name.toLowerCase().includes('minoxidil'));
+  const mentalHabit = habits.find(h => h.name.toLowerCase().includes('caderno'));
 
   const filteredHabits = habits.filter(h => {
     if (activeCategoryFilter === 'TODOS') return true;
-    if (activeCategoryFilter === 'SOROS') return h.name.includes('Soro');
-    if (activeCategoryFilter === 'MINOXIDIL') return h.name.includes('Minoxidil');
-    if (activeCategoryFilter === 'MENTAL') return h.name.includes('Caderno');
+    if (activeCategoryFilter === 'SOROS') return h.name.toLowerCase().includes('soro');
+    if (activeCategoryFilter === 'MINOXIDIL') return h.name.toLowerCase().includes('minoxidil');
+    if (activeCategoryFilter === 'MENTAL') return h.name.toLowerCase().includes('caderno');
     return true;
   });
 
@@ -139,35 +157,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <span>{greeting}!</span>
           </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Seus protocolos diários com suporte a múltiplos turnos e acompanhamento de sintomas.
+          </p>
         </div>
 
-        {/* Botões de Ação Rápida */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onOpenQuickAdd('habit')}
-            className="px-3.5 py-2 rounded-xl bg-[#161D29] hover:bg-white/[0.08] border border-white/10 text-white text-xs font-medium flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Novo Hábito</span>
-          </button>
-          <button
-            onClick={() => onOpenQuickAdd('task')}
-            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-indigo-600/20"
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>Nova Tarefa</span>
-          </button>
-        </div>
+        <button
+          onClick={() => onOpenQuickAdd('habit')}
+          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-medium text-xs flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all cursor-pointer self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Criar Hábito</span>
+        </button>
       </div>
 
-      {/* Painel das 3 Frentes da Planilha (Soros, Minoxidil, Caderno Mental) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* 3 Cartões de Acesso aos Protocolos */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         {/* Card 1: Soros Médicos */}
-        <div 
+        <div
           onClick={() => setActiveCategoryFilter(activeCategoryFilter === 'SOROS' ? 'TODOS' : 'SOROS')}
           className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
             activeCategoryFilter === 'SOROS'
-              ? 'bg-[#121c29] border-cyan-500 shadow-md ring-2 ring-cyan-500/30'
+              ? 'bg-[#15232d] border-cyan-500 shadow-md ring-2 ring-cyan-500/30'
               : 'bg-[#161D29] border-white/10 hover:border-cyan-500/40'
           }`}
         >
@@ -176,44 +187,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Activity className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              90 Dias
+              Manhã & Noite
             </span>
           </div>
           <h4 className="text-sm font-bold text-white">Soros Médicos</h4>
-          <p className="text-[11px] text-slate-400 mt-0.5">Manhã & Noite</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Protocolo 90 Dias</p>
           <div className="mt-2.5 flex items-center justify-between text-xs">
             <span className="text-slate-400">Hoje:</span>
-            <span className="font-mono font-bold text-cyan-400">{soroDone}/{soroTotal} feito</span>
+            <span className={`font-mono font-bold ${
+              soroHabit?.completed ? 'text-emerald-400' : soroHabit?.is_partial ? 'text-amber-400' : 'text-slate-400'
+            }`}>
+              {soroHabit ? `${soroHabit.current_value}/${soroHabit.target_value} doses` : '0/2'}
+            </span>
           </div>
         </div>
 
         {/* Card 2: Minoxidil */}
-        <div 
+        <div
           onClick={() => setActiveCategoryFilter(activeCategoryFilter === 'MINOXIDIL' ? 'TODOS' : 'MINOXIDIL')}
           className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
             activeCategoryFilter === 'MINOXIDIL'
-              ? 'bg-[#161c2b] border-blue-500 shadow-md ring-2 ring-blue-500/30'
-              : 'bg-[#161D29] border-white/10 hover:border-blue-500/40'
+              ? 'bg-[#181d33] border-indigo-500 shadow-md ring-2 ring-indigo-500/30'
+              : 'bg-[#161D29] border-white/10 hover:border-indigo-500/40'
           }`}
         >
           <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
               <Droplets className="w-4 h-4" />
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              300 Dias
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              Manhã & Noite
             </span>
           </div>
           <h4 className="text-sm font-bold text-white">Minoxidil</h4>
-          <p className="text-[11px] text-slate-400 mt-0.5">Manhã & Tarde/Noite</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Protocolo 90 Dias</p>
           <div className="mt-2.5 flex items-center justify-between text-xs">
             <span className="text-slate-400">Hoje:</span>
-            <span className="font-mono font-bold text-blue-400">{minoxDone}/{minoxTotal} feito</span>
+            <span className={`font-mono font-bold ${
+              minoxHabit?.completed ? 'text-emerald-400' : minoxHabit?.is_partial ? 'text-amber-400' : 'text-slate-400'
+            }`}>
+              {minoxHabit ? `${minoxHabit.current_value}/${minoxHabit.target_value} doses` : '0/2'}
+            </span>
           </div>
         </div>
 
         {/* Card 3: Caderno Mental */}
-        <div 
+        <div
           onClick={() => setActiveCategoryFilter(activeCategoryFilter === 'MENTAL' ? 'TODOS' : 'MENTAL')}
           className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
             activeCategoryFilter === 'MENTAL'
@@ -226,39 +245,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Brain className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              90 Dias
+              Diário
             </span>
           </div>
           <h4 className="text-sm font-bold text-white">Caderno Mental</h4>
           <p className="text-[11px] text-slate-400 mt-0.5">Reflexões & Humor</p>
           <div className="mt-2.5 flex items-center justify-between text-xs">
             <span className="text-slate-400">Hoje:</span>
-            <span className="font-mono font-bold text-amber-400">{mentalDone}/{mentalTotal} feito</span>
+            <span className="font-mono font-bold text-amber-400">
+              {mentalHabit?.completed ? '1/1 feito' : '0/1 pendente'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Barra de Progresso Geral */}
+      {/* Barra de Progresso Geral Ponderada */}
       <div className="p-4 rounded-2xl bg-[#161D29] border border-white/10 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400">
             <TrendingUp className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs font-bold text-white">Adesão Total do Dia</span>
+            <span className="text-xs font-bold text-white">Adesão Geral do Dia</span>
             <p className="text-[11px] text-slate-400">
-              {completedTotal} de {totalItems} itens concluídos
+              {completedTotal} de {totalItems} metas cumpridas
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="w-32 hidden sm:block h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
             <div
-              className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-400 rounded-full transition-all duration-500"
+              className={`h-full rounded-full transition-all duration-500 ${
+                completionPercentage >= 80 
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-400' 
+                  : completionPercentage >= 40 
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400' 
+                  : 'bg-indigo-500'
+              }`}
               style={{ width: `${completionPercentage}%` }}
             />
           </div>
-          <span className="text-lg font-black text-emerald-400 font-mono">
+          <span className={`text-lg font-black font-mono ${
+            completionPercentage >= 80 ? 'text-emerald-400' : completionPercentage >= 40 ? 'text-amber-400' : 'text-slate-400'
+          }`}>
             {completionPercentage}%
           </span>
         </div>
@@ -272,7 +301,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                Hábitos ({completedHabits}/{habits.length})
+                Hábitos & Protocolos
               </h3>
             </div>
             {activeCategoryFilter !== 'TODOS' && (
@@ -287,60 +316,55 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="space-y-3">
             {filteredHabits.map((habit) => {
+              const isMultiPeriod = Boolean(habit.periods && habit.periods.length > 0);
               const isDone = habit.completed;
-              const isBusy = updatingId === habit.id;
-              const isMorning = habit.name.toLowerCase().includes('manhã');
+              const isPartial = Boolean(habit.is_partial);
               const isMental = habit.name.toLowerCase().includes('caderno');
               const isMinox = habit.name.toLowerCase().includes('minoxidil');
 
               return (
                 <div
                   key={habit.id}
-                  onClick={() => handleToggleHabit(habit)}
-                  className={`group p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2.5 ${
+                  className={`p-4 rounded-2xl border transition-all flex flex-col gap-3 ${
                     isDone
-                      ? 'bg-[#161D29]/60 border-white/5'
-                      : 'bg-[#161D29] hover:bg-[#1A2230] border-white/10 shadow-sm hover:border-cyan-500/30'
+                      ? 'bg-[#161D29]/70 border-emerald-500/20'
+                      : isPartial
+                      ? 'bg-[#1a1b24] border-amber-500/30 shadow-md ring-1 ring-amber-500/20'
+                      : 'bg-[#161D29] border-white/10 hover:border-cyan-500/30'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      {/* Checkbox Circular */}
-                      <button
-                        type="button"
-                        disabled={isBusy}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleHabit(habit);
-                        }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                          isDone
-                            ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400/30'
-                            : 'border-2 border-slate-600 hover:border-cyan-400 text-transparent hover:text-slate-400'
-                        }`}
-                      >
-                        <Check className="w-4 h-4 stroke-[3]" />
-                      </button>
+                      {/* Ícone do Hábito */}
+                      <span 
+                        className="w-3.5 h-3.5 rounded-full shrink-0 mt-0.5 shadow-sm"
+                        style={{ backgroundColor: habit.color || '#06B6D4' }}
+                      />
 
-                      {/* Info */}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h4
-                            className={`text-sm font-bold truncate flex items-center gap-1.5 ${
-                              isDone ? 'line-through text-slate-500' : 'text-slate-100'
-                            }`}
-                          >
+                          <h4 className="text-sm font-bold text-white truncate flex items-center gap-1.5">
                             {isMental ? (
                               <Brain className="w-4 h-4 text-amber-400 shrink-0" />
                             ) : isMinox ? (
-                              <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-                            ) : isMorning ? (
-                              <Sun className="w-4 h-4 text-cyan-400 shrink-0" />
+                              <Droplets className="w-4 h-4 text-indigo-400 shrink-0" />
                             ) : (
-                              <Moon className="w-4 h-4 text-purple-400 shrink-0" />
+                              <Activity className="w-4 h-4 text-cyan-400 shrink-0" />
                             )}
                             <span>{habit.name}</span>
                           </h4>
+
+                          {/* Badge de Status: Concluído (Verde) / Parcial (Amarelo) */}
+                          {isDone ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                              100% OK
+                            </span>
+                          ) : isPartial ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0 animate-pulse">
+                              {Math.round(habit.completion_rate || 50)}% Parcial
+                            </span>
+                          ) : null}
+
                           {habit.streak > 0 && (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
                               <Flame className="w-3 h-3 fill-amber-400" />
@@ -348,33 +372,138 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5 truncate">
-                          {habit.description}
-                        </p>
+
+                        {habit.description && (
+                          <p className="text-xs text-slate-400 mt-0.5 truncate">
+                            {habit.description}
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    {/* Botão de Anotação de Sintomas / Reflexão */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleOpenNotes(e, habit)}
-                      className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
-                        habit.notes
-                          ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
-                          : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-                      }`}
-                      title="Registrar reflexão ou sintomas"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">
-                        {habit.notes ? 'Ver Nota' : isMental ? '+ Reflexão' : '+ Sintomas'}
-                      </span>
-                    </button>
+                    {/* Botão de Anotação Geral (quando não for por período ou para notas gerais) */}
+                    {!isMultiPeriod && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenNotes(e, habit)}
+                        className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                          habit.notes
+                            ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                            : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
+                        }`}
+                        title="Registrar reflexão ou sintomas"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">
+                          {habit.notes ? 'Ver Nota' : '+ Reflexão'}
+                        </span>
+                      </button>
+                    )}
                   </div>
 
-                  {/* Exibição de Sintomas / Reflexão */}
-                  {habit.notes && (
-                    <div className="mt-1 px-3 py-2 rounded-xl bg-[#0F141C] border border-cyan-500/20 text-xs text-cyan-200/90 flex items-start gap-2">
+                  {/* CASO 1: Hábito com Múltiplos Eventos no Dia (ex: Manhã & Noite) */}
+                  {isMultiPeriod && habit.period_statuses && (
+                    <div className="pt-2 border-t border-white/5 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        {habit.period_statuses.map((ps) => {
+                          const isPeriodMorning = ps.period.toLowerCase().includes('manhã');
+                          const isBusy = updatingId === `${habit.id}-${ps.period}`;
+
+                          return (
+                            <div
+                              key={ps.period}
+                              className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
+                                ps.completed
+                                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200'
+                                  : 'bg-[#0F141C] border-white/10 hover:border-white/20 text-slate-300'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => handleToggleHabit(habit, ps.period)}
+                                className="flex items-center gap-2 text-left min-w-0 cursor-pointer group/p"
+                              >
+                                {ps.completed ? (
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 group-hover/p:scale-110 transition-transform" />
+                                ) : (
+                                  <Circle className="w-4 h-4 text-slate-500 group-hover/p:text-cyan-400 shrink-0 group-hover/p:scale-110 transition-all" />
+                                )}
+                                <div className="min-w-0">
+                                  <span className="text-xs font-bold truncate flex items-center gap-1">
+                                    {isPeriodMorning ? (
+                                      <Sun className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                    ) : (
+                                      <Moon className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                    )}
+                                    <span>{ps.period}</span>
+                                  </span>
+                                </div>
+                              </button>
+
+                              {/* Botão de Observação por Turno */}
+                              <button
+                                type="button"
+                                onClick={(e) => handleOpenNotes(e, habit, ps.period)}
+                                className={`p-1 rounded-lg text-[10px] flex items-center gap-1 cursor-pointer transition-colors shrink-0 ${
+                                  ps.notes
+                                    ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/10'
+                                }`}
+                                title={ps.notes ? `Sintomas (${ps.period})` : `Adicionar sintomas (${ps.period})`}
+                              >
+                                <MessageSquare className="w-3 h-3" />
+                                {ps.notes && <span className="text-[10px]">Obs</span>}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Exibir notas de sintomas se existirem em algum período */}
+                      {habit.period_statuses.some(ps => ps.notes) && (
+                        <div className="space-y-1 pt-1">
+                          {habit.period_statuses.filter(ps => ps.notes).map(ps => (
+                            <div
+                              key={ps.period}
+                              onClick={(e) => handleOpenNotes(e, habit, ps.period)}
+                              className="px-2.5 py-1.5 rounded-lg bg-cyan-950/20 border border-cyan-500/20 text-[11px] text-cyan-200 flex items-start gap-1.5 cursor-pointer hover:border-cyan-500/40"
+                            >
+                              <span className="font-semibold text-cyan-400 shrink-0">
+                                {ps.period}:
+                              </span>
+                              <span className="italic break-words">{ps.notes}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* CASO 2: Hábito de evento único (Check Simples) */}
+                  {!isMultiPeriod && (
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                      <span className="text-xs text-slate-400">
+                        Status: <strong className={isDone ? 'text-emerald-400' : 'text-slate-300'}>{isDone ? 'Concluído' : 'Pendente'}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleHabit(habit)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                          isDone
+                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                        }`}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{isDone ? 'Concluído' : 'Marcar Feito'}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Exibição de Notas para Hábito Simples */}
+                  {!isMultiPeriod && habit.notes && (
+                    <div className="px-3 py-2 rounded-xl bg-[#0F141C] border border-cyan-500/20 text-xs text-cyan-200/90 flex items-start gap-2">
                       <span className="font-semibold text-cyan-400 shrink-0">
                         {isMental ? 'Reflexão/Humor:' : 'Sintomas:'}
                       </span>
@@ -465,16 +594,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Modal para Adicionar / Editar Sintomas ou Reflexão */}
       {editingNotesHabit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-[#161D29] border border-white/10 rounded-2xl shadow-2xl p-5 space-y-4">
+          <div className="w-full max-w-md bg-[#161D29] border border-cyan-500/30 rounded-2xl shadow-2xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-cyan-400" />
-                <h4 className="font-bold text-sm text-white">
-                  {editingNotesHabit.name.includes('Caderno') ? 'Reflexão & Humor' : 'Sintomas / Como se Sentiu'}
-                </h4>
+                <div>
+                  <h4 className="font-bold text-sm text-white">
+                    {editingNotesHabit.name.includes('Caderno') ? 'Reflexão & Humor' : 'Sintomas / Como se Sentiu'}
+                  </h4>
+                  {editingPeriod && (
+                    <span className="text-[11px] text-cyan-400 font-medium">
+                      Turno: {editingPeriod}
+                    </span>
+                  )}
+                </div>
               </div>
               <button
-                onClick={() => setEditingNotesHabit(null)}
+                onClick={() => {
+                  setEditingNotesHabit(null);
+                  setEditingPeriod(undefined);
+                }}
                 className="text-slate-400 hover:text-white p-1 rounded-lg"
               >
                 <X className="w-4 h-4" />
@@ -485,14 +624,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 {editingNotesHabit.name.includes('Caderno')
                   ? 'Como está seu humor, reflexões e foco hoje:'
-                  : 'Observações, sintomas ou sensações de hoje:'}
+                  : `Observações ou sintomas após a dose (${editingPeriod || 'do dia'}):`}
               </label>
               <textarea
                 rows={3}
                 placeholder={
                   editingNotesHabit.name.includes('Caderno')
                     ? 'Ex: Dia produtivo, mente focada, sem ansiedade...'
-                    : 'Ex: Me senti bem, sem crises, nariz desentupido...'
+                    : 'Ex: Me senti bem, sem crises, leve dor de cabeça 30min após a aplicação...'
                 }
                 value={notesInput}
                 onChange={(e) => setNotesInput(e.target.value)}
@@ -504,7 +643,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setEditingNotesHabit(null)}
+                onClick={() => {
+                  setEditingNotesHabit(null);
+                  setEditingPeriod(undefined);
+                }}
                 className="px-3 py-1.5 rounded-xl text-slate-400 hover:text-white text-xs font-medium cursor-pointer"
               >
                 Cancelar

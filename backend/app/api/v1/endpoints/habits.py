@@ -24,10 +24,11 @@ def toggle_habit(
     target_date: date = Query(default_factory=date.today),
     value: float | None = Query(default=None),
     notes: str | None = Query(default=None),
+    period: str | None = Query(default=None),
     db: Session = Depends(get_db)
 ):
     try:
-        return HabitService.toggle_or_add_log(db, habit_id, target_date, value, notes)
+        return HabitService.toggle_or_add_log(db, habit_id, target_date, value, notes, period)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

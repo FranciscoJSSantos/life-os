@@ -79,14 +79,14 @@ class AnalyticsService:
         for day in range(1, num_days + 1):
             curr_date = date(year, month, day)
 
-            # Hábitos previstos e concluídos no dia
+            # Hábitos previstos e progresso proporcional no dia
             habits_scheduled = 0
-            habits_completed = 0
+            habits_completion_sum = 0.0
             for h in active_habits:
                 if HabitService.is_habit_scheduled(h, curr_date):
                     habits_scheduled += 1
-                    if HabitService.is_completed_on_date(db, h.id, curr_date, h.target_value):
-                        habits_completed += 1
+                    ratio = HabitService.get_day_progress_ratio(db, h, curr_date)
+                    habits_completion_sum += ratio
 
             # Tarefas do dia
             tasks_due = list(db.scalars(
@@ -96,7 +96,7 @@ class AnalyticsService:
             tasks_completed = sum(1 for t in tasks_due if t.status == TaskStatus.COMPLETED)
 
             total_items = habits_scheduled + tasks_total
-            completed_items = habits_completed + tasks_completed
+            completed_items = habits_completion_sum + tasks_completed
             completion_rate = round((completed_items / total_items * 100), 1) if total_items > 0 else 0.0
 
             days_data.append(
@@ -104,7 +104,7 @@ class AnalyticsService:
                     date=curr_date.isoformat(),
                     weekday=curr_date.weekday(),
                     habits_total=habits_scheduled,
-                    habits_completed=habits_completed,
+                    habits_completed=round(habits_completion_sum, 1),
                     tasks_total=tasks_total,
                     tasks_completed=tasks_completed,
                     completion_rate=completion_rate

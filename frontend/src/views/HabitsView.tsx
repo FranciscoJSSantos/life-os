@@ -25,6 +25,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({
   const [editHabitType, setEditHabitType] = useState<'BOOLEAN' | 'NUMERIC' | 'DURATION'>('BOOLEAN');
   const [editTargetValue, setEditTargetValue] = useState(1);
   const [editUnit, setEditUnit] = useState('');
+  const [editPeriods, setEditPeriods] = useState('');
   const [editColor, setEditColor] = useState('#10B981');
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({
     setEditHabitType(h.habit_type);
     setEditTargetValue(h.target_value);
     setEditUnit(h.unit || '');
+    setEditPeriods(h.periods && h.periods.length > 0 ? h.periods.join(',') : '');
     setEditColor(h.color || '#10B981');
   };
 
@@ -56,6 +58,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({
         habit_type: editHabitType,
         target_value: Number(editTargetValue) || 1,
         unit: editHabitType === 'BOOLEAN' ? undefined : (editUnit.trim() || undefined),
+        periods: editPeriods.trim() || undefined,
         color: editColor
       });
       setEditingHabit(null);
@@ -190,12 +193,25 @@ export const HabitsView: React.FC<HabitsViewProps> = ({
                     <Target className="w-3 h-3 text-slate-500" />
                     {h.habit_type === 'BOOLEAN' ? 'Sim / Não' : h.habit_type === 'NUMERIC' ? `Meta: ${h.target_value} ${h.unit || ''}` : `Meta: ${h.target_value} min`}
                   </span>
+                  {h.periods && h.periods.length > 0 && (
+                    <span className="px-2 py-1 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-semibold">
+                      ☀️🌙 {h.periods.join(' & ')}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-3 border-t border-white/5">
                 <span className="text-xs text-slate-400">
-                  Status hoje: <strong className={h.completed ? 'text-emerald-400' : 'text-slate-300'}>{h.completed ? 'Concluído' : 'Pendente'}</strong>
+                  Status hoje: <strong className={
+                    h.completed 
+                      ? 'text-emerald-400' 
+                      : h.is_partial 
+                      ? 'text-amber-400' 
+                      : 'text-slate-300'
+                  }>
+                    {h.completed ? '100% Concluído' : h.is_partial ? `${Math.round(h.completion_rate || 50)}% Parcial` : 'Pendente'}
+                  </strong>
                 </span>
                 <button
                   onClick={() => onToggleHabit(h)}
@@ -322,6 +338,66 @@ export const HabitsView: React.FC<HabitsViewProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Eventos / Períodos no Dia */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Eventos / Turnos no Dia (Permite medir 50% parcial)
+                </label>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditPeriods('');
+                      if (editHabitType === 'BOOLEAN') setEditTargetValue(1);
+                    }}
+                    className={`p-2 rounded-xl border text-center text-xs font-medium cursor-pointer transition-all ${
+                      !editPeriods
+                        ? 'border-indigo-500 bg-indigo-500/15 text-white'
+                        : 'border-white/5 bg-[#0F141C] text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    1x ao dia (Dia todo)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditPeriods('Manhã,Noite');
+                      setEditTargetValue(2);
+                      setEditUnit('doses');
+                      setEditHabitType('NUMERIC');
+                    }}
+                    className={`p-2 rounded-xl border text-center text-xs font-medium cursor-pointer transition-all ${
+                      editPeriods === 'Manhã,Noite'
+                        ? 'border-cyan-500 bg-cyan-500/15 text-cyan-200'
+                        : 'border-white/5 bg-[#0F141C] text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    2x ao dia (Manhã & Noite)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditPeriods('Manhã,Tarde,Noite');
+                      setEditTargetValue(3);
+                      setEditUnit('doses');
+                      setEditHabitType('NUMERIC');
+                    }}
+                    className={`p-2 rounded-xl border text-center text-xs font-medium cursor-pointer transition-all ${
+                      editPeriods === 'Manhã,Tarde,Noite'
+                        ? 'border-purple-500 bg-purple-500/15 text-purple-200'
+                        : 'border-white/5 bg-[#0F141C] text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    3x ao dia (3 Turnos)
+                  </button>
+                </div>
+                {editPeriods && (
+                  <p className="text-[11px] text-cyan-400">
+                    Turnos vinculados: <strong>{editPeriods.split(',').join(' e ')}</strong>. Cada turno terá seu próprio check no dia.
+                  </p>
+                )}
+              </div>
 
               {/* Seletor de Cores */}
               <div>

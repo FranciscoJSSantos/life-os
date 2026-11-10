@@ -11,7 +11,7 @@ class CalendarDayData(BaseModel):
     date: str # YYYY-MM-DD
     weekday: int # 0=Segunda, 6=Domingo
     habits_total: int
-    habits_completed: int
+    habits_completed: float
     tasks_total: int
     tasks_completed: int
     completion_rate: float
