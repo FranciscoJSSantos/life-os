@@ -137,6 +137,72 @@ export interface AnalyticsOverview {
   total_completed_logs: number;
 }
 
+export interface ChallengeHabitStat {
+  habit_id: string;
+  name: string;
+  color: string;
+  icon: string;
+  completed_count: number;
+  expected_count: number;
+  accuracy_rate: number;
+}
+
+export interface ChallengeTimelineNote {
+  date: string;
+  habit_name: string;
+  note: string;
+}
+
+export interface ChallengeRead {
+  id: string;
+  name: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  duration_days: number;
+  days_elapsed: number;
+  days_remaining: number;
+  target_accuracy: number;
+  accuracy_rate: number;
+  days_perfect: number;
+  is_on_track: boolean;
+  color: string;
+  icon: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'ARCHIVED';
+  habits_stats: ChallengeHabitStat[];
+}
+
+export interface ChallengeCreateDto {
+  name: string;
+  description?: string;
+  start_date: string;
+  duration_days: number;
+  target_accuracy: number;
+  color?: string;
+  icon?: string;
+  habit_ids: string[];
+}
+
+export interface AISummaryRequest {
+  api_key?: string;
+  provider?: string;
+  custom_prompt?: string;
+}
+
+export interface ChallengeSummaryReport {
+  challenge_id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  days_elapsed: number;
+  total_days: number;
+  overall_accuracy: number;
+  is_on_track: boolean;
+  habits_stats: ChallengeHabitStat[];
+  timeline_notes: ChallengeTimelineNote[];
+  ai_analysis: string;
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${BASE_URL}${endpoint}`;
   const headers = {
@@ -173,6 +239,9 @@ export const api = {
   getCalendar: (year: number, month: number) => request<CalendarMonthRead>(`/calendar?year=${year}&month=${month}`),
   getAnalyticsOverview: () => request<AnalyticsOverview>('/analytics/overview'),
   getHabitHeatmap: (habitId: string, year?: number) => request<HeatmapDay[]>(`/analytics/heatmap/${habitId}${year ? `?year=${year}` : ''}`),
+  getChallenges: () => request<ChallengeRead[]>('/challenges'),
+  createChallenge: (payload: ChallengeCreateDto) => request<ChallengeRead>('/challenges', { method: 'POST', body: JSON.stringify(payload) }),
+  getChallengeSummary: (challengeId: string, payload?: AISummaryRequest) => request<ChallengeSummaryReport>(`/challenges/${challengeId}/summary`, { method: 'POST', body: JSON.stringify(payload || {}) }),
   exportBackup: () => request<any>('/backup/export'),
   importBackup: (payload: any) => request<any>('/backup/import', { method: 'POST', body: JSON.stringify(payload) })
 };

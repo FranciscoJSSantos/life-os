@@ -4,6 +4,7 @@ from app.models.habit import Habit, HabitSchedule, HabitLog, HabitType, HabitSta
 from app.models.task import Task, TaskSubtask, TaskPriority, TaskStatus
 from app.models.routine import Routine, RoutineItem
 from app.models.goal import Goal, GoalItem, GoalStatus
+from app.models.challenge import Challenge, ChallengeStatus, challenge_habits
 from app.models.setting import Setting
 
 __all__ = [
@@ -25,5 +26,8 @@ __all__ = [
     "Goal",
     "GoalItem",
     "GoalStatus",
+    "Challenge",
+    "ChallengeStatus",
+    "challenge_habits",
     "Setting"
 ]

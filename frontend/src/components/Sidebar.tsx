@@ -9,11 +9,12 @@ import {
   Settings as SettingsIcon, 
   Plus, 
   Database,
-  Sparkles
+  Sparkles,
+  Trophy
 } from 'lucide-react';
 import type { HealthResponse } from '../api/client';
 
-export type ActiveTab = 'today' | 'habits' | 'tasks' | 'routines' | 'calendar' | 'analytics' | 'settings';
+export type ActiveTab = 'today' | 'habits' | 'tasks' | 'challenges' | 'routines' | 'calendar' | 'analytics' | 'settings';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -32,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'today', label: 'Hoje', icon: CalendarCheck2 },
     { id: 'habits', label: 'Hábitos', icon: Flame },
     { id: 'tasks', label: 'Tarefas', icon: CheckSquare },
+    { id: 'challenges', label: 'Desafios & IA', icon: Trophy },
     { id: 'routines', label: 'Rotinas', icon: Clock },
     { id: 'calendar', label: 'Calendário', icon: CalendarIcon },
     { id: 'analytics', label: 'Métricas', icon: BarChart3 },

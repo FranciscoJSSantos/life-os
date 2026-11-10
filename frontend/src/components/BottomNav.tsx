@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   CalendarCheck2, 
-  Flame, 
+  Trophy, 
   Plus, 
   Calendar as CalendarIcon, 
   MoreHorizontal 
@@ -32,13 +32,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       </button>
 
       <button
-        onClick={() => onTabChange('habits')}
+        onClick={() => onTabChange('challenges')}
         className={`flex flex-col items-center justify-center py-1 px-2 text-xs transition-colors cursor-pointer ${
-          activeTab === 'habits' ? 'text-indigo-400 font-medium' : 'text-slate-400'
+          activeTab === 'challenges' ? 'text-cyan-400 font-medium' : 'text-slate-400'
         }`}
       >
-        <Flame className="w-5 h-5 mb-0.5" />
-        <span>Hábitos</span>
+        <Trophy className="w-5 h-5 mb-0.5" />
+        <span>Desafios</span>
       </button>
 
       {/* FAB Central */}

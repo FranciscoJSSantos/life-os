@@ -5,6 +5,7 @@ import { QuickAddModal } from './components/QuickAddModal';
 import { DashboardView } from './views/DashboardView';
 import { HabitsView } from './views/HabitsView';
 import { TasksView } from './views/TasksView';
+import { ChallengesView } from './views/ChallengesView';
 import { RoutinesView } from './views/RoutinesView';
 import { CalendarView } from './views/CalendarView';
 import { AnalyticsView } from './views/AnalyticsView';
@@ -163,6 +164,10 @@ export function App() {
                   onOpenQuickAdd={handleOpenQuickAdd}
                   onToggleTask={handleToggleTask}
                 />
+              )}
+
+              {activeTab === 'challenges' && (
+                <ChallengesView habits={habits} />
               )}
 
               {activeTab === 'routines' && <RoutinesView />}
