@@ -1,0 +1,91 @@
+<div class="settings-container">
+  <header class="page-header">
+    <div>
+      <span class="page-subtitle">Preferências & Segurança</span>
+      <h1 class="page-title">Configurações & Backup</h1>
+    </div>
+  </header>
+
+  @if (feedbackMessage()) {
+    <div 
+      class="feedback-banner" 
+      [class.success]="feedbackType() === 'success'"
+      [class.error]="feedbackType() === 'error'"
+    >
+      {{ feedbackMessage() }}
+    </div>
+  }
+
+  <div class="settings-grid">
+    <!-- Card de Backup & Restauração -->
+    <section class="card settings-card">
+      <div class="card-header">
+        <span class="card-icon">💾</span>
+        <div>
+          <h2>Backup dos Dados</h2>
+          <p class="card-desc">Exporte ou restaure todos os seus hábitos, tarefas, rotinas e histórico.</p>
+        </div>
+      </div>
+
+      <div class="actions-group">
+        <button 
+          type="button" 
+          class="btn-action btn-export" 
+          [disabled]="isExporting()"
+          (click)="downloadBackup()"
+        >
+          @if (isExporting()) { Exportando... } @else { ⬇️ Baixar Backup Completo (JSON) }
+        </button>
+
+        <label class="btn-action btn-import" [class.disabled]="isImporting()">
+          <span>⬆️ Restaurar Backup de Arquivo</span>
+          <input 
+            type="file" 
+            accept=".json" 
+            (change)="onFileSelected($event)" 
+            [disabled]="isImporting()"
+            style="display: none;"
+          />
+        </label>
+      </div>
+
+      <p class="privacy-note">
+        🔒 <strong>100% Local-First:</strong> Seus dados nunca saem da sua máquina. O arquivo de backup gerado é totalmente legível e compatível com exportações futuras.
+      </p>
+    </section>
+
+    <!-- Card de Informações do Sistema -->
+    <section class="card settings-card">
+      <div class="card-header">
+        <span class="card-icon">⚡</span>
+        <div>
+          <h2>Sobre o LifeOS</h2>
+          <p class="card-desc">Gerenciador de Hábitos e Rotinas Diárias</p>
+        </div>
+      </div>
+
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">Versão</span>
+          <span class="info-value">1.0.0 (Local-first PWA)</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Banco de Dados</span>
+          <span class="info-value">SQLite 3 (data/lifeos.db)</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Frontend</span>
+          <span class="info-value">Angular 21 + Design HabitNow</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Backend</span>
+          <span class="info-value">Python 3.12 + FastAPI + Alembic</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Modo PWA</span>
+          <span class="info-value text-success">Instalável & Offline-ready</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

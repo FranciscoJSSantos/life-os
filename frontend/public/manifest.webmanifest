@@ -1,0 +1,18 @@
+{
+  "name": "LifeOS — Hábitos & Rotinas",
+  "short_name": "LifeOS",
+  "theme_color": "#0F141C",
+  "background_color": "#0F141C",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "start_url": "/",
+  "description": "Gerenciador pessoal de hábitos, rotinas diárias e tarefas inspirado no HabitNow.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

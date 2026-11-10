@@ -240,4 +240,13 @@ export class ApiService {
     }
     return this.http.get<HeatmapDay[]>(`${this.baseUrl}/analytics/heatmap/${habitId}`, { params });
   }
+
+  // Backup
+  exportBackup(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/backup/export`);
+  }
+
+  importBackup(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/backup/import`, payload);
+  }
 }

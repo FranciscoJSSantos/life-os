@@ -7,7 +7,7 @@ from app.models.category import Category
 from app.models.habit import Habit
 from app.models.task import Task
 from app.models.routine import Routine
-from app.api.v1.endpoints import categories, habits, tasks, routines, analytics
+from app.api.v1.endpoints import categories, habits, tasks, routines, analytics, backup
 
 api_router = APIRouter()
 
@@ -38,3 +38,4 @@ api_router.include_router(habits.router)
 api_router.include_router(tasks.router)
 api_router.include_router(routines.router)
 api_router.include_router(analytics.router)
+api_router.include_router(backup.router)
