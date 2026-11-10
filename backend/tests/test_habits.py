@@ -57,11 +57,75 @@ def test_create_and_toggle_habit():
         assert reverted["completed"] is False
         assert reverted["streak"] == 0
 
-        # 6. Limpar hábito de teste do banco
-        from app.database.session import SessionLocal
-        from app.models.habit import Habit
-        with SessionLocal() as db:
-            h = db.get(Habit, habit_id)
-            if h:
-                db.delete(h)
-                db.commit()
+        # 6. Atualizar hábito
+        edit_res = client.put(f"/api/v1/habits/{habit_id}", json={"name": "Caminhada Rápida", "target_value": 2.0})
+        assert edit_res.status_code == 200
+        assert edit_res.json()["name"] == "Caminhada Rápida"
+
+        # 7. Toggle com observação / notas
+        toggle_note_res = client.post(f"/api/v1/habits/{habit_id}/toggle?notes=Senti%20bastante%20energia")
+        assert toggle_note_res.status_code == 200
+        assert toggle_note_res.json()["completed"] is True
+        assert toggle_note_res.json()["notes"] == "Senti bastante energia"
+
+        # 8. Excluir hábito
+        del_res = client.delete(f"/api/v1/habits/{habit_id}?hard_delete=true")
+        assert del_res.status_code == 200
+        assert del_res.json()["success"] is True
+
+def test_challenges_crud_and_accuracy():
+    with TestClient(app) as client:
+        # Obter hábitos
+        today_res = client.get("/api/v1/habits/today")
+        assert today_res.status_code == 200
+        habits = today_res.json()
+        assert len(habits) >= 2
+        habit_ids = [habits[0]["id"], habits[1]["id"]]
+
+        # Criar desafio
+        ch_payload = {
+            "name": "Desafio de Teste",
+            "duration_days": 30,
+            "target_accuracy": 85.0,
+            "habit_ids": habit_ids
+        }
+        create_res = client.post("/api/v1/challenges", json=ch_payload)
+        assert create_res.status_code == 201
+        ch_data = create_res.json()
+        ch_id = ch_data["id"]
+        assert ch_data["name"] == "Desafio de Teste"
+
+        # Atualizar desafio
+        update_res = client.put(f"/api/v1/challenges/{ch_id}", json={
+            "name": "Desafio de Teste Editado",
+            "duration_days": 45,
+            "habit_ids": [habit_ids[0]]
+        })
+        assert update_res.status_code == 200
+        assert update_res.json()["name"] == "Desafio de Teste Editado"
+
+        # Excluir desafio
+        del_ch_res = client.delete(f"/api/v1/challenges/{ch_id}")
+        assert del_ch_res.status_code == 204
+
+        # Testar deletar hábito associado a desafio
+        new_ch = client.post("/api/v1/challenges", json={
+            "name": "Desafio Temporario",
+            "duration_days": 10,
+            "target_accuracy": 80.0,
+            "habit_ids": [habit_ids[0]]
+        }).json()
+        
+        # Deletar hábito com hard_delete
+        # Primeiro criamos um hábito novo e associamos ao desafio
+        h_temp = client.post("/api/v1/habits", json={
+            "name": "Habito Para Exclusao",
+            "habit_type": "BOOLEAN",
+            "target_value": 1.0
+        }).json()
+        client.put(f"/api/v1/challenges/{new_ch['id']}", json={
+            "habit_ids": [h_temp["id"]]
+        })
+        del_h_res = client.delete(f"/api/v1/habits/{h_temp['id']}?hard_delete=true")
+        assert del_h_res.status_code == 200
+        client.delete(f"/api/v1/challenges/{new_ch['id']}")

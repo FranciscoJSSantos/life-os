@@ -26,6 +26,16 @@ class ChallengeCreate(BaseModel):
     icon: str = Field(default="trophy")
     habit_ids: list[str] = Field(..., min_length=1)
 
+class ChallengeUpdate(BaseModel):
+    name: str | None = Field(None, max_length=150)
+    description: str | None = None
+    start_date: date | None = None
+    duration_days: int | None = Field(None, ge=1)
+    target_accuracy: float | None = Field(None, ge=1.0, le=100.0)
+    color: str | None = None
+    icon: str | None = None
+    habit_ids: list[str] | None = None
+
 class ChallengeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

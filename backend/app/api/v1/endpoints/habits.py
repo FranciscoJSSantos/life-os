@@ -56,9 +56,9 @@ def update_habit(habit_id: str, habit_in: HabitUpdate, db: Session = Depends(get
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hábito não encontrado")
     return habit
 
-@router.delete("/{habit_id}", response_model=HabitRead, summary="Arquivar Hábito")
-def archive_habit(habit_id: str, db: Session = Depends(get_db)):
-    habit = HabitService.update_habit(db, habit_id, HabitUpdate(status=HabitStatus.ARCHIVED))
-    if not habit:
+@router.delete("/{habit_id}", summary="Excluir ou Arquivar Hábito")
+def delete_habit(habit_id: str, hard_delete: bool = True, db: Session = Depends(get_db)):
+    success = HabitService.delete_habit(db, habit_id, hard_delete=hard_delete)
+    if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hábito não encontrado")
-    return habit
+    return {"success": True, "hard_delete": hard_delete}

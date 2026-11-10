@@ -155,6 +155,7 @@ export function App() {
                   habits={habits}
                   onOpenQuickAdd={handleOpenQuickAdd}
                   onToggleHabit={handleToggleHabit}
+                  onReload={loadData}
                 />
               )}
 

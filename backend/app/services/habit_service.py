@@ -49,6 +49,23 @@ class HabitService:
         return habit
 
     @staticmethod
+    def delete_habit(db: Session, habit_id: str, hard_delete: bool = False) -> bool:
+        habit = db.get(Habit, habit_id)
+        if not habit:
+            return False
+
+        if hard_delete:
+            from app.models.challenge import challenge_habits
+            # Limpar associações em desafios antes de deletar
+            db.execute(challenge_habits.delete().where(challenge_habits.c.habit_id == habit_id))
+            db.delete(habit)
+        else:
+            habit.status = HabitStatus.ARCHIVED
+
+        db.commit()
+        return True
+
+    @staticmethod
     def is_habit_scheduled(habit: Habit, target_date: date) -> bool:
         """
         Determina se um hábito está previsto para uma data específica com base

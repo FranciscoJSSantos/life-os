@@ -10,7 +10,9 @@ import {
   Key, 
   X,
   FileText,
-  Award
+  Award,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { 
   api, 
@@ -38,7 +40,7 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
   const [customPrompt, setCustomPrompt] = useState<string>('');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
-  // Modal Novo Desafio
+  // Modal Criar Desafio
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -46,6 +48,15 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
   const [newTarget, setNewTarget] = useState(90);
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+
+  // Modal Editar Desafio
+  const [editingChallenge, setEditingChallenge] = useState<ChallengeRead | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editDuration, setEditDuration] = useState(90);
+  const [editTarget, setEditTarget] = useState(90);
+  const [editHabitIds, setEditHabitIds] = useState<string[]>([]);
+  const [updating, setUpdating] = useState(false);
 
   const fetchChallenges = async () => {
     try {
@@ -129,11 +140,63 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
     }
   };
 
-  const toggleHabitSelection = (habitId: string) => {
+  const handleOpenEdit = (challenge: ChallengeRead) => {
+    setEditingChallenge(challenge);
+    setEditName(challenge.name);
+    setEditDesc(challenge.description || '');
+    setEditDuration(challenge.duration_days);
+    setEditTarget(challenge.target_accuracy);
+    setEditHabitIds(challenge.habits_stats.map(h => h.habit_id));
+  };
+
+  const handleUpdateChallenge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingChallenge || !editName.trim() || editHabitIds.length === 0) return;
+    setUpdating(true);
+    try {
+      await api.updateChallenge(editingChallenge.id, {
+        name: editName.trim(),
+        description: editDesc.trim() || undefined,
+        duration_days: Number(editDuration),
+        target_accuracy: Number(editTarget),
+        habit_ids: editHabitIds
+      });
+      setEditingChallenge(null);
+      fetchChallenges();
+    } catch (err) {
+      console.error('Erro ao atualizar desafio:', err);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteChallenge = async (challengeId: string, challengeName: string) => {
+    if (!window.confirm(`Deseja realmente remover o desafio "${challengeName}"?`)) {
+      return;
+    }
+    try {
+      await api.deleteChallenge(challengeId);
+      fetchChallenges();
+    } catch (err) {
+      console.error('Erro ao remover desafio:', err);
+    }
+  };
+
+  const toggleCreateHabitSelection = (habitId: string) => {
     if (selectedHabitIds.includes(habitId)) {
       setSelectedHabitIds(selectedHabitIds.filter(id => id !== habitId));
     } else {
       setSelectedHabitIds([...selectedHabitIds, habitId]);
+    }
+  };
+
+  const toggleEditHabitSelection = (habitId: string) => {
+    if (editHabitIds.includes(habitId)) {
+      if (editHabitIds.length > 1) {
+        setEditHabitIds(editHabitIds.filter(id => id !== habitId));
+      }
+    } else {
+      setEditHabitIds([...editHabitIds, habitId]);
     }
   };
 
@@ -151,7 +214,7 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
             </h2>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Meça rigorosamente a sua taxa de acurácia, consistência de doses e evolução clínica com IA.
+            Acompanhe metas, meça a acurácia de hábitos e gere resumos inteligentes com IA.
           </p>
         </div>
 
@@ -176,7 +239,7 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
           </div>
           <h3 className="text-base font-bold text-white">Nenhum desafio ativo</h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Crie um desafio como o "Protocolo 90 Dias de Soro & Minoxidil" para acompanhar a sua taxa de acurácia diária.
+            Crie um desafio como o "Protocolo 90 Dias de Soro" para acompanhar a sua taxa de acurácia diária.
           </p>
           <button
             onClick={() => setIsCreateModalOpen(true)}
@@ -202,7 +265,7 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
                   style={{ backgroundColor: challenge.color || '#06B6D4' }}
                 />
 
-                {/* Challenge Header */}
+                {/* Challenge Header com Ações */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2.5">
@@ -220,14 +283,32 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
                     </div>
                   </div>
 
-                  {/* Botão Resumo IA em destaque */}
-                  <button
-                    onClick={() => handleOpenSummary(challenge)}
-                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-cyan-600/25 transition-all cursor-pointer self-start sm:self-auto shrink-0"
-                  >
-                    <Sparkles className="w-4 h-4 text-amber-300" />
-                    <span>Gerar Resumo do Andamento (IA)</span>
-                  </button>
+                  {/* Ações: Editar, Excluir e Resumo IA */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <button
+                      onClick={() => handleOpenEdit(challenge)}
+                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-colors cursor-pointer"
+                      title="Editar Desafio"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteChallenge(challenge.id, challenge.name)}
+                      className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors cursor-pointer"
+                      title="Excluir Desafio"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenSummary(challenge)}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-cyan-600/25 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <span>Resumo com IA</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* KPIs e Acurácia */}
@@ -256,7 +337,7 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
                       {challenge.days_elapsed} <span className="text-xs text-slate-500 font-normal">/ {challenge.duration_days} dias</span>
                     </p>
                     <p className="text-[10px] text-slate-500">
-                      Restam {challenge.days_remaining} dias para a meta
+                      Restam {challenge.days_remaining} dias
                     </p>
                   </div>
 
@@ -285,7 +366,7 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
                       )}
                     </div>
                     <p className={`text-base font-black ${isTargetReached ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {isTargetReached ? 'Dentro da Meta' : 'Atenção Necessária'}
+                      {isTargetReached ? 'Dentro da Meta' : 'Atenção'}
                     </p>
                     <p className="text-[10px] text-slate-500">
                       Iniciado em {new Date(challenge.start_date + 'T12:00:00').toLocaleDateString('pt-BR')}
@@ -347,6 +428,125 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal Editar Desafio */}
+      {editingChallenge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-lg bg-[#161D29] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-white/10 bg-[#121824] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-cyan-400" />
+                <h3 className="font-bold text-sm text-white">Editar Desafio</h3>
+              </div>
+              <button
+                onClick={() => setEditingChallenge(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateChallenge} className="p-5 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Nome do Desafio *
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#0F141C] border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Descrição (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#0F141C] border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Duração em Dias
+                  </label>
+                  <input
+                    type="number"
+                    min="7"
+                    max="365"
+                    value={editDuration}
+                    onChange={(e) => setEditDuration(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0F141C] border border-white/10 text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Meta de Acurácia (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="50"
+                    max="100"
+                    value={editTarget}
+                    onChange={(e) => setEditTarget(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0F141C] border border-white/10 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Seletor de Hábitos Participantes */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                  Hábitos Vinculados a este Desafio:
+                </label>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {habits.map((h) => {
+                    const isSelected = editHabitIds.includes(h.id);
+                    return (
+                      <div
+                        key={h.id}
+                        onClick={() => toggleEditHabitSelection(h.id)}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-200'
+                            : 'bg-[#0F141C] border-white/5 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="font-semibold">{h.name}</span>
+                        <span className="font-mono text-[11px]">{isSelected ? '✓ Selecionado' : '+ Incluir'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditingChallenge(null)}
+                  className="px-3 py-1.5 rounded-xl text-slate-400 text-xs font-medium cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating || editHabitIds.length === 0}
+                  className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                >
+                  {updating ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -569,7 +769,7 @@ export const ChallengesView: React.FC<ChallengesViewProps> = ({ habits }) => {
                     return (
                       <div
                         key={h.id}
-                        onClick={() => toggleHabitSelection(h.id)}
+                        onClick={() => toggleCreateHabitSelection(h.id)}
                         className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-colors ${
                           isSelected
                             ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-200'

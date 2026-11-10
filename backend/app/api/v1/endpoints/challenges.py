@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.challenge import (
-    ChallengeCreate, ChallengeRead, AISummaryRequest, ChallengeSummaryReport
+    ChallengeCreate, ChallengeUpdate, ChallengeRead, AISummaryRequest, ChallengeSummaryReport
 )
 from app.services.challenge_service import ChallengeService
 
@@ -23,6 +23,24 @@ def get_challenge(challenge_id: str, db: Session = Depends(get_db)):
     if not stats:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Desafio não encontrado")
     return stats
+
+@router.put("/{challenge_id}", response_model=ChallengeRead, summary="Atualizar Desafio")
+def update_challenge(
+    challenge_id: str, 
+    challenge_in: ChallengeUpdate, 
+    db: Session = Depends(get_db)
+):
+    updated = ChallengeService.update_challenge(db, challenge_id, challenge_in)
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Desafio não encontrado")
+    return ChallengeService.get_challenge_with_stats(db, challenge_id)
+
+@router.delete("/{challenge_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Excluir Desafio")
+def delete_challenge(challenge_id: str, db: Session = Depends(get_db)):
+    deleted = ChallengeService.delete_challenge(db, challenge_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Desafio não encontrado")
+    return None
 
 @router.post("/{challenge_id}/summary", response_model=ChallengeSummaryReport, summary="Gerar Resumo do Andamento (IA)")
 def generate_summary(

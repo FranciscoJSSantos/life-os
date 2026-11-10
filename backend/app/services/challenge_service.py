@@ -6,7 +6,7 @@ from sqlalchemy import select, and_, func
 from app.models.challenge import Challenge, ChallengeStatus, challenge_habits
 from app.models.habit import Habit, HabitLog, LogStatus
 from app.schemas.challenge import (
-    ChallengeCreate, ChallengeRead, ChallengeHabitStat,
+    ChallengeCreate, ChallengeUpdate, ChallengeRead, ChallengeHabitStat,
     ChallengeTimelineNote, ChallengeSummaryReport
 )
 from app.services.habit_service import HabitService
@@ -35,6 +35,45 @@ class ChallengeService:
         db.commit()
         db.refresh(challenge)
         return challenge
+
+    @staticmethod
+    def update_challenge(db: Session, challenge_id: str, challenge_in: ChallengeUpdate) -> Challenge | None:
+        challenge = db.get(Challenge, challenge_id)
+        if not challenge:
+            return None
+
+        if challenge_in.name is not None:
+            challenge.name = challenge_in.name
+        if challenge_in.description is not None:
+            challenge.description = challenge_in.description
+        if challenge_in.start_date is not None:
+            challenge.start_date = challenge_in.start_date
+        if challenge_in.duration_days is not None:
+            challenge.end_date = challenge.start_date + timedelta(days=challenge_in.duration_days - 1)
+        if challenge_in.target_accuracy is not None:
+            challenge.target_accuracy = challenge_in.target_accuracy
+        if challenge_in.color is not None:
+            challenge.color = challenge_in.color
+        if challenge_in.icon is not None:
+            challenge.icon = challenge_in.icon
+
+        if challenge_in.habit_ids is not None:
+            habits = db.scalars(select(Habit).where(Habit.id.in_(challenge_in.habit_ids))).all()
+            challenge.habits = list(habits)
+
+        db.commit()
+        db.refresh(challenge)
+        return challenge
+
+    @staticmethod
+    def delete_challenge(db: Session, challenge_id: str) -> bool:
+        challenge = db.get(Challenge, challenge_id)
+        if not challenge:
+            return False
+        challenge.habits.clear()
+        db.delete(challenge)
+        db.commit()
+        return True
 
     @staticmethod
     def list_challenges_with_stats(db: Session) -> list[ChallengeRead]:

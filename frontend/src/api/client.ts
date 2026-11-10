@@ -215,7 +215,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     const errorText = await res.text();
     throw new Error(`API Error [${res.status}]: ${errorText}`);
   }
-  return res.json() as Promise<T>;
+  if (res.status === 204) {
+    return {} as T;
+  }
+  const text = await res.text();
+  return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
 export const api = {
@@ -231,6 +235,8 @@ export const api = {
     return request<HabitTodayItem>(`/habits/${habitId}/toggle${query}`, { method: 'POST' });
   },
   createHabit: (payload: CreateHabitDto) => request('/habits', { method: 'POST', body: JSON.stringify(payload) }),
+  updateHabit: (habitId: string, payload: Partial<CreateHabitDto>) => request<any>(`/habits/${habitId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteHabit: (habitId: string, hardDelete: boolean = true) => request<any>(`/habits/${habitId}?hard_delete=${hardDelete}`, { method: 'DELETE' }),
   listAllHabits: () => request<any[]>('/habits'),
   getTodayTasks: (date?: string) => request<TaskTodayItem[]>(`/tasks/today${date ? `?target_date=${date}` : ''}`),
   toggleTask: (taskId: string) => request<TaskTodayItem>(`/tasks/${taskId}/toggle`, { method: 'POST' }),
@@ -241,6 +247,8 @@ export const api = {
   getHabitHeatmap: (habitId: string, year?: number) => request<HeatmapDay[]>(`/analytics/heatmap/${habitId}${year ? `?year=${year}` : ''}`),
   getChallenges: () => request<ChallengeRead[]>('/challenges'),
   createChallenge: (payload: ChallengeCreateDto) => request<ChallengeRead>('/challenges', { method: 'POST', body: JSON.stringify(payload) }),
+  updateChallenge: (challengeId: string, payload: Partial<ChallengeCreateDto>) => request<ChallengeRead>(`/challenges/${challengeId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteChallenge: (challengeId: string) => request<void>(`/challenges/${challengeId}`, { method: 'DELETE' }),
   getChallengeSummary: (challengeId: string, payload?: AISummaryRequest) => request<ChallengeSummaryReport>(`/challenges/${challengeId}/summary`, { method: 'POST', body: JSON.stringify(payload || {}) }),
   exportBackup: () => request<any>('/backup/export'),
   importBackup: (payload: any) => request<any>('/backup/import', { method: 'POST', body: JSON.stringify(payload) })
