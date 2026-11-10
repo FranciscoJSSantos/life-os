@@ -1,0 +1,66 @@
+<div class="app-layout">
+  <!-- Desktop Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo-mark">⚡</div>
+      <div class="brand-text">
+        <span class="brand-name">LifeOS</span>
+        <span class="brand-sub">Habit & Routine</span>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      @for (item of navItems; track item.label) {
+        <a 
+          [routerLink]="item.route" 
+          routerLinkActive="active" 
+          [routerLinkActiveOptions]="{ exact: item.route === '' }"
+          class="nav-link"
+        >
+          <span class="nav-label">{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="system-status">
+        <span class="version-label">LifeOS v1.0 • Local-first</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main View Area -->
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <a routerLink="" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="bottom-nav-item">
+      <span>Hoje</span>
+    </a>
+    <a routerLink="/habits" routerLinkActive="active" class="bottom-nav-item">
+      <span>Hábitos</span>
+    </a>
+    <button type="button" class="bottom-nav-fab" (click)="openQuickAdd()" aria-label="Criar novo">
+      <span>+</span>
+    </button>
+    <a routerLink="/tasks" routerLinkActive="active" class="bottom-nav-item">
+      <span>Tarefas</span>
+    </a>
+    <a routerLink="/analytics" routerLinkActive="active" class="bottom-nav-item">
+      <span>Métricas</span>
+    </a>
+  </nav>
+
+  <!-- Desktop Floating Action Button (+) HabitNow Style -->
+  <button 
+    type="button" 
+    class="desktop-fab" 
+    (click)="openQuickAdd()" 
+    title="Criar Hábito, Tarefa ou Meta"
+    aria-label="Criar novo"
+  >
+    <span class="plus-icon">+</span>
+  </button>
+</div>

@@ -1,0 +1,164 @@
+<div class="dashboard-container">
+  <!-- Top Greeting & Date -->
+  <header class="dashboard-header">
+    <div class="header-info">
+      <span class="date-badge">{{ todayFormatted() }}</span>
+      <h1 class="greeting">Olá, vamos ser consistentes hoje?</h1>
+    </div>
+
+    <!-- Backend Status Badge -->
+    <div class="status-indicator">
+      @if (backendStatus(); as status) {
+        <span class="badge badge-success">
+          <span class="pulse-dot"></span> Backend Conectado (SQLite)
+        </span>
+      } @else if (backendError()) {
+        <span class="badge badge-warning">
+          Modo Offline Local
+        </span>
+      } @else {
+        <span class="badge">Conectando...</span>
+      }
+    </div>
+  </header>
+
+  <!-- Progress Overview Card (HabitNow Style) -->
+  <section class="card progress-card">
+    <div class="progress-top">
+      <div>
+        <span class="card-subtitle">Progresso Diário</span>
+        <h2 class="percentage-display">{{ completionPercentage() }}%</h2>
+      </div>
+      <div class="summary-metrics">
+        <div class="metric-pill">
+          <span class="metric-label">Hábitos</span>
+          <span class="metric-val">
+            {{ habits().filter(h => h.completed).length }}/{{ habits().length }}
+          </span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Tarefas</span>
+          <span class="metric-val">
+            {{ tasks().filter(t => t.completed).length }}/{{ tasks().length }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animated Progress Bar -->
+    <div class="progress-track">
+      <div 
+        class="progress-fill" 
+        [style.width.%]="completionPercentage()"
+      ></div>
+    </div>
+  </section>
+
+  <!-- Main Content Grid -->
+  <div class="content-grid">
+    <!-- Habits Section -->
+    <section class="section-column">
+      <div class="section-title-row">
+        <h3>Hábitos de Hoje</h3>
+        <span class="count-tag">{{ habits().filter(h => h.completed).length }} concluídos</span>
+      </div>
+
+      <div class="items-list">
+        @for (habit of habits(); track habit.id) {
+          <div 
+            class="card habit-card" 
+            [class.completed]="habit.completed"
+            [style.--habit-accent]="habit.color"
+          >
+            <div class="habit-left">
+              <button 
+                type="button" 
+                class="check-circle-btn" 
+                [class.checked]="habit.completed"
+                (click)="toggleHabit(habit.id)"
+                aria-label="Marcar hábito"
+              >
+                @if (habit.completed) {
+                  <svg viewBox="0 0 24 24" class="check-icon">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                }
+              </button>
+
+              <div class="habit-info">
+                <span class="habit-title">{{ habit.name }}</span>
+                <div class="habit-meta">
+                  <span class="category-pill">{{ habit.category }}</span>
+                  @if (habit.type !== 'BOOLEAN') {
+                    <span class="value-pill">
+                      {{ habit.currentValue }}/{{ habit.targetValue }} {{ habit.unit }}
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="habit-right">
+              <div class="streak-badge" title="Sequência de consistência">
+                <span class="flame-icon">🔥</span>
+                <span class="streak-num">{{ habit.streak }}d</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Tasks Section -->
+    <section class="section-column">
+      <div class="section-title-row">
+        <h3>Tarefas do Dia</h3>
+        <span class="count-tag">{{ tasks().filter(t => t.completed).length }}/{{ tasks().length }}</span>
+      </div>
+
+      <div class="items-list">
+        @for (task of tasks(); track task.id) {
+          <div 
+            class="card task-card" 
+            [class.completed]="task.completed"
+          >
+            <div class="task-left">
+              <button 
+                type="button" 
+                class="task-check-box" 
+                [class.checked]="task.completed"
+                (click)="toggleTask(task.id)"
+                aria-label="Marcar tarefa"
+              >
+                @if (task.completed) {
+                  <svg viewBox="0 0 24 24" class="check-icon">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                }
+              </button>
+              
+              <div class="task-info">
+                <span class="task-title">{{ task.title }}</span>
+                <div class="task-meta">
+                  <span class="category-pill">{{ task.category }}</span>
+                  @if (task.dueTime) {
+                    <span class="time-pill">⏰ {{ task.dueTime }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="task-right">
+              <span 
+                class="priority-tag" 
+                [class]="'priority-' + task.priority.toLowerCase()"
+              >
+                {{ task.priority }}
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+</div>

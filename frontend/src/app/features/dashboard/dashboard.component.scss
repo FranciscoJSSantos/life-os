@@ -1,0 +1,371 @@
+.dashboard-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  .date-badge {
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .greeting {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-success);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    box-shadow: 0 0 8px var(--accent-success);
+  }
+}
+
+/* Card de Progresso HabitNow */
+.progress-card {
+  background: linear-gradient(135deg, rgba(31, 40, 56, 0.9), rgba(26, 34, 48, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: var(--accent-primary);
+  }
+
+  .progress-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .card-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .percentage-display {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .summary-metrics {
+      display: flex;
+      gap: 12px;
+
+      .metric-pill {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--border-color);
+        padding: 6px 14px;
+        border-radius: var(--border-radius-sm);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+
+        .metric-label {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+          text-transform: uppercase;
+        }
+        .metric-val {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+      }
+    }
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 10px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-full);
+    overflow: hidden;
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-cyan));
+      border-radius: var(--border-radius-full);
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+}
+
+/* Grid de Conteúdo */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 850px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.section-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  .section-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .count-tag {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+  }
+
+  .items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Habit Card */
+.habit-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-left: 4px solid var(--habit-accent, var(--accent-primary));
+  transition: all var(--transition-fast);
+
+  &.completed {
+    opacity: 0.65;
+    background-color: rgba(26, 34, 48, 0.5);
+
+    .habit-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+  }
+
+  .habit-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    .check-circle-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--habit-accent, var(--border-color));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        transform: scale(1.08);
+      }
+
+      &.checked {
+        background-color: var(--habit-accent, var(--accent-success));
+        border-color: var(--habit-accent, var(--accent-success));
+      }
+
+      .check-icon {
+        width: 18px;
+        height: 18px;
+        stroke: #ffffff;
+        stroke-width: 3;
+        fill: none;
+      }
+    }
+
+    .habit-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      .habit-title {
+        font-size: 0.98rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .habit-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.75rem;
+
+        .category-pill {
+          color: var(--text-muted);
+        }
+        .value-pill {
+          color: var(--text-secondary);
+          background: rgba(255, 255, 255, 0.06);
+          padding: 1px 6px;
+          border-radius: 4px;
+        }
+      }
+    }
+  }
+
+  .habit-right {
+    .streak-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      padding: 3px 8px;
+      border-radius: var(--border-radius-full);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-warning);
+
+      .flame-icon {
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+/* Task Card */
+.task-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  transition: all var(--transition-fast);
+
+  &.completed {
+    opacity: 0.65;
+    background-color: rgba(26, 34, 48, 0.5);
+
+    .task-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+  }
+
+  .task-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    .task-check-box {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        border-color: var(--accent-primary);
+      }
+
+      &.checked {
+        background-color: var(--accent-primary);
+        border-color: var(--accent-primary);
+      }
+
+      .check-icon {
+        width: 16px;
+        height: 16px;
+        stroke: #ffffff;
+        stroke-width: 3;
+        fill: none;
+      }
+    }
+
+    .task-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      .task-title {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .task-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.75rem;
+
+        .category-pill, .time-pill {
+          color: var(--text-muted);
+        }
+      }
+    }
+  }
+
+  .task-right {
+    .priority-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+
+      &.priority-urgent {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--accent-danger);
+      }
+      &.priority-high {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--accent-warning);
+      }
+      &.priority-medium {
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--accent-primary);
+      }
+      &.priority-low {
+        background: rgba(148, 163, 184, 0.15);
+        color: var(--text-muted);
+      }
+    }
+  }
+}
