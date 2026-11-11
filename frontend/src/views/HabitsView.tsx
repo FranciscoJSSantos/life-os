@@ -58,7 +58,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({
         habit_type: editHabitType,
         target_value: Number(editTargetValue) || 1,
         unit: editHabitType === 'BOOLEAN' ? undefined : (editUnit.trim() || undefined),
-        periods: editPeriods.trim() || undefined,
+        periods: editPeriods.trim() ? editPeriods.trim() : null,
         color: editColor
       });
       setEditingHabit(null);
@@ -349,7 +349,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({
                     type="button"
                     onClick={() => {
                       setEditPeriods('');
-                      if (editHabitType === 'BOOLEAN') setEditTargetValue(1);
+                      setEditTargetValue(1);
                     }}
                     className={`p-2 rounded-xl border text-center text-xs font-medium cursor-pointer transition-all ${
                       !editPeriods

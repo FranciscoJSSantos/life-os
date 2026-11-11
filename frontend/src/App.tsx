@@ -18,13 +18,55 @@ import {
 } from './api/client';
 import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 
+const VALID_TABS: ActiveTab[] = ['today', 'habits', 'tasks', 'challenges', 'routines', 'calendar', 'analytics', 'settings'];
+
+function getInitialTab(): ActiveTab {
+  const hash = window.location.hash.replace('#', '') as ActiveTab;
+  if (VALID_TABS.includes(hash)) {
+    return hash;
+  }
+  const saved = localStorage.getItem('lifeos_active_tab') as ActiveTab;
+  if (VALID_TABS.includes(saved)) {
+    return saved;
+  }
+  return 'today';
+}
+
 export function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('today');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(getInitialTab);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [habits, setHabits] = useState<HabitTodayItem[]>([]);
   const [tasks, setTasks] = useState<TaskTodayItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Sincronizar aba ativa no localStorage e no Hash da URL para persistir no F5 / Reload
+  const handleTabChange = useCallback((tab: ActiveTab) => {
+    setActiveTab(tab);
+    localStorage.setItem('lifeos_active_tab', tab);
+    if (window.location.hash !== `#${tab}`) {
+      window.location.hash = tab;
+    }
+  }, []);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as ActiveTab;
+      if (VALID_TABS.includes(hash)) {
+        setActiveTab(hash);
+        localStorage.setItem('lifeos_active_tab', hash);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('lifeos_active_tab', activeTab);
+    if (window.location.hash !== `#${activeTab}`) {
+      window.location.hash = activeTab;
+    }
+  }, [activeTab]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -81,7 +123,7 @@ export function App() {
       {/* Desktop Sidebar */}
       <Sidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onOpenQuickAdd={handleOpenQuickAdd}
         health={health}
       />
@@ -99,7 +141,7 @@ export function App() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleTabChange('settings')}
               className={`p-1.5 rounded-lg text-xs font-semibold ${
                 activeTab === 'settings' ? 'text-indigo-400 bg-white/5' : 'text-slate-400'
               }`}
@@ -188,7 +230,7 @@ export function App() {
       {/* Mobile Bottom Navigation */}
       <BottomNav
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onOpenQuickAdd={() => handleOpenQuickAdd('habit')}
       />
 

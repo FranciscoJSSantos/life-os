@@ -11,16 +11,27 @@ import {
   X, 
   Save,
   Sun,
-  Moon
+  Moon,
+  Sparkles
 } from 'lucide-react';
 import { api, type CalendarMonthRead, type HabitTodayItem, type TaskTodayItem } from '../api/client';
 
+// Helper de formatação de data local (sem bug de UTC drift)
+function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export const CalendarView: React.FC = () => {
-  const today = new Date();
-  const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth() + 1);
+  const todayStr = getLocalDateString();
+  const todayObj = new Date();
+  
+  const [currentYear, setCurrentYear] = useState<number>(todayObj.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState<number>(todayObj.getMonth() + 1);
   const [calendarData, setCalendarData] = useState<CalendarMonthRead | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(today.toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [dayHabits, setDayHabits] = useState<HabitTodayItem[]>([]);
   const [dayTasks, setDayTasks] = useState<TaskTodayItem[]>([]);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -62,21 +73,27 @@ export const CalendarView: React.FC = () => {
   }, [selectedDate]);
 
   const handlePrevMonth = () => {
-    if (currentMonth === 1) {
-      setCurrentMonth(12);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
+    let newYear = currentYear;
+    let newMonth = currentMonth - 1;
+    if (newMonth < 1) {
+      newMonth = 12;
+      newYear -= 1;
     }
+    setCurrentMonth(newMonth);
+    setCurrentYear(newYear);
+    setSelectedDate(`${newYear}-${String(newMonth).padStart(2, '0')}-01`);
   };
 
   const handleNextMonth = () => {
-    if (currentMonth === 12) {
-      setCurrentMonth(1);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
+    let newYear = currentYear;
+    let newMonth = currentMonth + 1;
+    if (newMonth > 12) {
+      newMonth = 1;
+      newYear += 1;
     }
+    setCurrentMonth(newMonth);
+    setCurrentYear(newYear);
+    setSelectedDate(`${newYear}-${String(newMonth).padStart(2, '0')}-01`);
   };
 
   // Alternar Hábito na data selecionada (com suporte a período)
@@ -158,6 +175,9 @@ export const CalendarView: React.FC = () => {
   // Ajuste para começar na Segunda (0 = Seg, 6 = Dom)
   const offsetDays = (firstDayOfMonth + 6) % 7;
 
+  const completedHabitsCount = dayHabits.filter(h => h.completed).length;
+  const partialHabitsCount = dayHabits.filter(h => h.is_partial).length;
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-16">
       {/* Header */}
@@ -212,15 +232,16 @@ export const CalendarView: React.FC = () => {
             {/* Dias do Mês */}
             {calendarData?.days.map((day) => {
               const isSelected = selectedDate === day.date;
+              const isToday = todayStr === day.date;
               const rate = Math.round(day.completion_rate);
               const dayNum = parseInt(day.date.split('-')[2], 10);
 
-              // Cores: 80%+ Verde, 25%-79% Amarelo/Âmbar (ex: 50% fica amarelo brilhante), >0% Índigo
+              // Cores: 80%+ Verde, 20%-79% Amarelo/Âmbar (ex: 50% fica amarelo destacado), >0% Índigo
               let rateBg = 'bg-slate-800/40 text-slate-500';
               if (rate >= 80) {
                 rateBg = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-              } else if (rate >= 25) {
-                rateBg = 'bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold';
+              } else if (rate >= 20) {
+                rateBg = 'bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold';
               } else if (rate > 0) {
                 rateBg = 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30';
               }
@@ -230,15 +251,22 @@ export const CalendarView: React.FC = () => {
                   key={day.date}
                   type="button"
                   onClick={() => setSelectedDate(day.date)}
-                  className={`h-16 p-2 rounded-xl border flex flex-col justify-between items-center transition-all cursor-pointer ${
+                  className={`h-16 p-2 rounded-xl border flex flex-col justify-between items-center transition-all cursor-pointer relative ${
                     isSelected
-                      ? 'border-indigo-500 bg-indigo-600/20 shadow-md ring-2 ring-indigo-500/30'
+                      ? 'border-indigo-500 bg-indigo-600/25 shadow-md ring-2 ring-indigo-500/40'
+                      : isToday
+                      ? 'border-white/30 bg-[#141b27] hover:border-white/40'
                       : 'border-white/5 bg-[#0F141C] hover:bg-[#1A2230] hover:border-white/20'
                   }`}
                 >
-                  <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                    {dayNum}
-                  </span>
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`text-xs font-bold ${isSelected ? 'text-white' : isToday ? 'text-cyan-400' : 'text-slate-300'}`}>
+                      {dayNum}
+                    </span>
+                    {isToday && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" title="Hoje" />
+                    )}
+                  </div>
 
                   {day.habits_total > 0 || day.tasks_total > 0 ? (
                     <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full ${rateBg}`}>
@@ -257,8 +285,9 @@ export const CalendarView: React.FC = () => {
         <div className="bg-[#161D29] p-5 rounded-2xl border border-white/10 shadow-lg space-y-5">
           <div className="border-b border-white/10 pb-3 flex items-start justify-between">
             <div>
-              <span className="text-[11px] uppercase tracking-wider text-indigo-400 font-bold block">
-                Dia Selecionado
+              <span className="text-[11px] uppercase tracking-wider text-indigo-400 font-bold block flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                <span>Dia Selecionado</span>
               </span>
               <h3 className="text-base font-bold text-white capitalize mt-0.5">
                 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', {
@@ -278,7 +307,8 @@ export const CalendarView: React.FC = () => {
             <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
               <span>Hábitos do Dia</span>
               <span className="text-slate-400 font-mono text-[11px]">
-                {dayHabits.filter(h => h.completed).length}/{dayHabits.length} concluídos
+                {completedHabitsCount}/{dayHabits.length} OK
+                {partialHabitsCount > 0 && ` (${partialHabitsCount} parcial)`}
               </span>
             </h4>
 
@@ -298,7 +328,7 @@ export const CalendarView: React.FC = () => {
                         isDone
                           ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-200'
                           : isPartial
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-200 ring-1 ring-amber-500/20'
                           : 'bg-[#0F141C] border-white/5 text-slate-300'
                       }`}
                     >
@@ -314,10 +344,10 @@ export const CalendarView: React.FC = () => {
                         {/* Badge de Status */}
                         {isDone ? (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-                            100% Feito
+                            100% OK
                           </span>
                         ) : isPartial ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
                             {Math.round(h.completion_rate || 50)}% Parcial
                           </span>
                         ) : (
@@ -337,7 +367,7 @@ export const CalendarView: React.FC = () => {
                             return (
                               <div
                                 key={ps.period}
-                                className={`p-2 rounded-lg border flex items-center justify-between gap-1.5 ${
+                                className={`p-2 rounded-lg border flex items-center justify-between gap-1.5 transition-colors ${
                                   ps.completed
                                     ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200'
                                     : 'bg-[#121824] border-white/10 text-slate-400'
@@ -376,7 +406,7 @@ export const CalendarView: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Se for evento simples */}
+                      {/* Se for evento simples (1x ao dia) */}
                       {!isMultiPeriod && (
                         <div className="flex items-center justify-between pt-1">
                           <button
@@ -407,7 +437,7 @@ export const CalendarView: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Exibir notas de sintomas existentes */}
+                      {/* Exibir notas de sintomas se existirem */}
                       {h.notes && (
                         <div 
                           onClick={() => handleOpenNoteModal(h)}

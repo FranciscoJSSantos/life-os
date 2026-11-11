@@ -42,7 +42,12 @@ class HabitService:
 
         update_data = habit_in.model_dump(exclude_unset=True)
         for key, value in update_data.items():
-            setattr(habit, key, value)
+            if key == "periods" and (value == "" or value is None):
+                setattr(habit, key, None)
+            elif key == "unit" and value == "":
+                setattr(habit, key, None)
+            else:
+                setattr(habit, key, value)
 
         db.commit()
         db.refresh(habit)
@@ -217,8 +222,11 @@ class HabitService:
             period_statuses: list[HabitPeriodStatus] = []
 
             if periods_list:
+                unassigned_logs = [l for l in logs if not l.period or l.period not in periods_list]
                 for p in periods_list:
                     p_log = next((l for l in logs if l.period == p), None)
+                    if not p_log and unassigned_logs:
+                        p_log = unassigned_logs.pop(0)
                     period_statuses.append(
                         HabitPeriodStatus(
                             period=p,

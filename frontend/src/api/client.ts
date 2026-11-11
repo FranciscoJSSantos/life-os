@@ -59,8 +59,8 @@ export interface CreateHabitDto {
   color?: string;
   habit_type: 'BOOLEAN' | 'NUMERIC' | 'DURATION';
   target_value: number;
-  unit?: string;
-  periods?: string;
+  unit?: string | null;
+  periods?: string | null;
   schedule?: {
     frequency_type: 'DAILY' | 'WEEKLY_DAYS' | 'INTERVAL' | 'MONTHLY_DAYS';
     weekdays?: string;
